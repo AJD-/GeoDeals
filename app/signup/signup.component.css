@@ -1,0 +1,11 @@
+.button-container{
+	top:50%;
+	margin-top:20%;
+}
+.btn-primary{
+	vertical-align: middle;
+	width: 400px;
+	box-shadow: -2px 4px 2px 2px black;
+	background-color: #ffffff;
+	color:black;
+}
