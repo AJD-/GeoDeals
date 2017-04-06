@@ -6,6 +6,7 @@ import { AppComponent }   from './app.component';
 import { HomeComponent }   from './home/home.component';
 import { SignupComponent } from './signup/signup.component';
 import { LoginComponent } from './login/login.component';
+import { FeedComponent } from './feed/feed.component';
 
 
 @NgModule({
@@ -23,10 +24,14 @@ import { LoginComponent } from './login/login.component';
 		{
 			path: 'login',
 			component: LoginComponent
+		},
+		{
+			path: 'feed',
+			component: FeedComponent
 		}
 	])
 ],
-  declarations: [ AppComponent, HomeComponent, SignupComponent, LoginComponent ],
+  declarations: [ AppComponent, HomeComponent, SignupComponent, LoginComponent, FeedComponent ],
   bootstrap:    [ AppComponent ]
 })
 
