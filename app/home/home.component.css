@@ -2,10 +2,8 @@
 	top:50%;
 	margin-top:20%;
 }
-.btn-primary{
+.btn-main{
 	vertical-align: middle;
 	width: 400px;
 	box-shadow: -2px 4px 2px 2px black;
-	background-color: #ffff8f;
-	color:black;
 }
