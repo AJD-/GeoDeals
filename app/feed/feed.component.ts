@@ -1,5 +1,8 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 
+import { MovieRepository } from 'api/deal-repository.service';
+import { Deal } from 'api/deal';
+
 
 @Component({
   selector: 'feed',
