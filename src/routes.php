@@ -38,15 +38,34 @@ $app->post('/api/signin', function ($request, $response) {
     return $this->response->withJson($token);
 });
 // Update Profile
-$app->post('/api/profile/[{username}]', function ($request, $response, $args) {
-    $obj = array(
-    'first_name' => 'Kellen',
-    'last_name' => 'Schmidt',
-    'username' => 'kelleniscool',
-    'email' => 'kellenschmidt@dealsinthe.us',
-    'phone' => '1234567890'
-    );
-    return $this->response->withJson($obj);
+$app->put('/api/profile/[{old_username}]', function ($request, $response, $args) {
+    $input = $request->getParsedBody();
+    $sql = "UPDATE users 
+            SET first_name = :first_name, 
+                last_name = :last_name,
+                email = :email,
+                username = :username,
+                phone = :phone, 
+                birth_date = :birth_date, 
+                email_marketing = :email_marketing,
+                updated_date = :updated_date
+            WHERE username = :old_username";
+    $sth = $this->db->prepare($sql);
+    $sth->bindParam("first_name", $input['first_name']);
+    $sth->bindParam("last_name", $input['last_name']);
+    $sth->bindParam("email", $input['email']);
+    $sth->bindParam("username", $input['username']);
+    $sth->bindParam("phone", $input['phone']);
+    $sth->bindParam("birth_date", $input['birth_date']);
+    $sth->bindParam("email_marketing", $input['email_marketing']);
+    $sth->bindParam("old_username", $args['old_username']);
+    $currentDateTime = date('Y-m-d H:i:s');
+    $sth->bindParam("updated_date", $currentDateTime);
+    $sth->execute();
+
+    // Add updated_date to http response
+    $input += ["updated_date" => $currentDateTime];
+    return $this->response->withJson($input);
 });
 // Get Profile
 $app->get('/api/profile/[{username}]', function ($request, $response, $args) {
