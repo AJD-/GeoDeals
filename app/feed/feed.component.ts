@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 
-import { MovieRepository } from 'api/deal-repository.service';
-import { Deal } from 'api/deal';
+import { DealRepository } from '../api/deal-repository.service';
+import { Deal } from '../api/deal';
 
 
 @Component({
@@ -13,9 +13,11 @@ import { Deal } from 'api/deal';
 export class FeedComponent { 
 	@Output() titleUpdated : EventEmitter<string> = new EventEmitter();
 	title : string;
+	deals : Deal[];
 
-	constructor(){
+	constructor(private dealRepository : DealRepository){
 		this.title = "GeoDeals";
 		this.titleUpdated.emit(this.title);
+		this.deals = this.dealRepository.list();
 	}
 }
