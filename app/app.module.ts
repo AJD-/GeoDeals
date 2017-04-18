@@ -7,6 +7,7 @@ import { HomeComponent }   from './home/home.component';
 import { SignupComponent } from './signup/signup.component';
 import { LoginComponent } from './login/login.component';
 import { FeedComponent } from './feed/feed.component';
+import { DealRepository } from './api/deal-repository.service';
 
 
 @NgModule({
@@ -32,6 +33,7 @@ import { FeedComponent } from './feed/feed.component';
 	])
 ],
   declarations: [ AppComponent, HomeComponent, SignupComponent, LoginComponent, FeedComponent ],
+  providers: [ DealRepository ],
   bootstrap:    [ AppComponent ]
 })
 
