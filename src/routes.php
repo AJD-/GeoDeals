@@ -182,12 +182,29 @@ $app->post('/api/vote', function ($request, $response, $args) {
 
     return $this->response->withJson();
 });
-// Upvote
-$app->post('/api/downvote', function ($request, $response, $args) {
-    $obj = array(
-    "score"=>17
-    );
-    return $this->response->withJson($obj);
+// Get vote count
+$app->get('/api/votes/[{deal_id}]', function ($request, $response, $args) {
+    // Get number of upvotes
+    $sth = $this->db->prepare("SELECT COUNT(vote_id) AS upvotes
+                               FROM votes 
+                               WHERE vote_type = 1 
+                               AND deal_id = :deal_id");
+    $sth->bindParam("deal_id", $args['deal_id']);
+    $sth->execute();
+    $upvotes = $sth->fetchObject()->upvotes;
+
+    // Get number of downvotes
+    $sth = $this->db->prepare("SELECT COUNT(vote_id) AS downvotes
+                               FROM votes 
+                               WHERE vote_type = 0 
+                               AND deal_id = :deal_id");
+    $sth->bindParam("deal_id", $args['deal_id']);
+    $sth->execute();
+    $downvotes = $sth->fetchObject()->downvotes;
+
+    // Calculate vote count
+    $difference = $upvotes-$downvotes;
+    return $this->response->withJson(array("votes" => $difference));
 });
 // Flag
 $app->post('/api/flag', function ($request, $response, $args) {
