@@ -59,8 +59,7 @@ $app->put('/api/profile/[{old_username}]', function ($request, $response, $args)
     $sth->bindParam("birth_date", $input['birth_date']);
     $sth->bindParam("email_marketing", $input['email_marketing']);
     $sth->bindParam("old_username", $args['old_username']);
-    $currentDateTime = date('Y-m-d H:i:s');
-    $sth->bindParam("updated_date", $currentDateTime);
+    $sth->bindParam("updated_date", date('Y-m-d H:i:s'));
     $sth->execute();
 
     // Add updated_date to http response
@@ -133,12 +132,55 @@ $app->post('/api/newdeal', function ($request, $response, $args) {
     );
     return $this->response->withJson($obj);
 });
-// Upvote
-$app->post('/api/upvote', function ($request, $response, $args) {
-    $obj = array(
-    "score"=>17
-    );
-    return $this->response->withJson($obj);
+// Vote
+$app->post('/api/vote', function ($request, $response, $args) {
+    // Get current vote for user on specific deal
+    $input = $request->getParsedBody();
+    $search = "SELECT vote_type
+               FROM votes 
+               WHERE user_id = :user_id 
+               AND deal_id = :deal_id";
+    $sth = $this->db->prepare($search);
+    $sth->bindParam("user_id", $input['user_id']);
+    $sth->bindParam("deal_id", $input['deal_id']);
+    $success = $sth->execute();
+    $vote = $sth->fetchObject();
+    
+    // If query executes successfully (all input args are valid)
+    if($success) {
+        // If user has not voted on current deal
+        // Add new entry in votes table
+        if($vote == false) {
+            $addVote = "INSERT INTO votes 
+                        SET vote_type = :vote_type,
+                            user_id = :user_id,
+                            deal_id = :deal_id,
+                            vote_date = :vote_date";
+            $sth = $this->db->prepare($addVote);
+            $sth->bindParam("vote_type", $input['vote_type']);
+            $sth->bindParam("user_id", $input['user_id']);
+            $sth->bindParam("deal_id", $input['deal_id']);
+            $sth->bindParam("vote_date", date('Y-m-d H:i:s'));
+            $sth->execute();
+        }
+        // If user has already voted on current deal
+        // Update existing entry in votes table with vote_type
+        else {
+            $editVote = "UPDATE votes 
+                         SET vote_type = :vote_type,
+                             vote_date = :vote_date
+                         WHERE user_id = :user_id
+                         AND deal_id = :deal_id";
+            $sth = $this->db->prepare($editVote);
+            $sth->bindParam("vote_type", $input['vote_type']);
+            $sth->bindParam("user_id", $input['user_id']);
+            $sth->bindParam("deal_id", $input['deal_id']);
+            $sth->bindParam("vote_date", date('Y-m-d H:i:s'));
+            $sth->execute();
+        }
+    }
+
+    return $this->response->withJson();
 });
 // Upvote
 $app->post('/api/downvote', function ($request, $response, $args) {
