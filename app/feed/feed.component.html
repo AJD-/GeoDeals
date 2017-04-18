@@ -5,7 +5,7 @@
 	<div class="media thumbnail">
 		<div class="pull-left">
 			<a href="#"><!-- Should be a link to the actual deal -->
-				<img class="media-object" src="http://placehold.it/200x200" alt="<Title>"><!-- Should be getting data from the deal -->
+				<img class="media-object deal-icon" [src]="deal.imagePath" [alt]="deal.title"><!-- Should be getting data from the deal -->
 			</a>
 		</div>
 		<h1 class="media-heading col-xs-6">{{ deal.title }}</h1>
