@@ -215,12 +215,25 @@ $app->post('/api/flag', function ($request, $response, $args) {
     );
     return $this->response->withJson($obj);
 });
-// Comment
+// Post comment
 $app->post('/api/comment', function ($request, $response, $args) {
     $obj = array(
     "comment_id"=>1,
     "date"=> '2017-04-10 15:45:21'
     );
     return $this->response->withJson($obj);
+});
+//Get comments
+$app->get('/api/comments/[{deal_id}]', function ($request, $response, $args) {
+    $sth = $this->db->prepare("SELECT username, comment, posted_date, comments.updated_date
+                               FROM comments 
+                               JOIN users 
+                               ON comments.user_id=users.user_id
+                               WHERE deal_id=:deal_id
+                               ORDER BY posted_date ASC");
+    $sth->bindParam("deal_id", $args['deal_id']);
+    $sth->execute();
+    $comments = $sth->fetchAll();
+    return $this->response->withJson($comments);
 });
 ?>
