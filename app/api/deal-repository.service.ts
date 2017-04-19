@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-//import { Http, Headers, Response } from '@angular/core';
+import { Http, Headers, Response } from '@angular/http';
 
 import { Deal } from './deal';
 
@@ -16,7 +16,7 @@ export class DealRepository {
 		return -1;
 	}
 
-	constructor(){
+	constructor(private http: Http){
 		this._deals = [
 			{ id: 1, title: 'Deal 1', description: "SAMPLE DESCRIPTION", imagePath: 'img/tilted.png', rating: 20 },
 			{ id: 2, title: 'Deal 2', description: "SAMPLE DESCRIPTION", imagePath: 'img/unknown.png', rating: 35 },
