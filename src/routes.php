@@ -95,6 +95,7 @@
     });
 
 
+
 // Get Specific Deal
     $app->get('/api/deal/[{deal_id}]', function ($request, $response, $args) {
 	$sth = $this->db->prepare("SELECT deals.deal_id, username, title, store, description, category, expiration_date, posted_date, deals.updated_date, path_to_file
