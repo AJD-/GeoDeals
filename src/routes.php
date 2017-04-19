@@ -242,6 +242,28 @@ $app->post('/api/comment', function ($request, $response, $args) {
     $return = $output->fetchObject();
     return $this->response->withJson($return);
 });
+// PUT for updating comment
+$app->put('/api/comment', function ($request, $response, $args) {
+    $input = $request->getParsedBody();
+    $sql = "UPDATE comments 
+            SET comment = :comment,
+                updated_date = :updated_date
+            WHERE comment_id = :comment_id";
+    $sth = $this->db->prepare($sql);
+    $sth->bindParam("comment", $input['comment']);
+    $sth->bindParam("updated_date", date('Y-m-d H:i:s'));
+    $sth->bindParam("comment_id", $input['comment_id']);
+    $sth->execute();
+
+    $outputSql = "SELECT * 
+                  FROM comments 
+                  ORDER BY posted_date DESC
+                  LIMIT 1";
+    $output = $this->db->prepare($outputSql);
+    $output->execute();
+    $return = $output->fetchObject();
+    return $this->response->withJson($return);
+});
 //Get comments
 $app->get('/api/comments/[{deal_id}]', function ($request, $response, $args) {
     $sth = $this->db->prepare("SELECT username, comment, posted_date, comments.updated_date
