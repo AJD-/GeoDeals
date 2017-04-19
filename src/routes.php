@@ -54,7 +54,7 @@ $app->post('/api/profile', function ($request, $response, $args) {
     $user_id = $output->fetchObject()->user_id;
 
     $return = array(
-    'token' => 'fsdakf098f2p098mfakl320fal',
+    'token' => 'TemporaryTokenPleaseImplementMe',
     'creation_date' => $currentDateTime,
     'user_id' => $user_id
     );
@@ -100,12 +100,10 @@ $app->get('/api/profile/[{username}]', function ($request, $response, $args) {
 });
 //Delete profile
 $app->delete('/api/profile', function ($request, $response, $args) {
+    $input = $request->getParsedBody();
     $sth = $this->db->prepare("DELETE FROM users 
                                WHERE user_id=:user_id");
-    $json = $request->getBody();
-    $data = json_decode($json);
-    $user_id = $data->user_id;
-    $sth->bindParam("user_id", $user_id);
+    $sth->bindParam("user_id", $input['user_id']);
     
     if($sth->execute())
         $result = "Success";
@@ -319,12 +317,10 @@ $app->get('/api/comments/[{deal_id}]', function ($request, $response, $args) {
 });
 //Delete comment
 $app->delete('/api/comment', function ($request, $response, $args) {
+    $input = $request->getParsedBody();
     $sth = $this->db->prepare("DELETE FROM comments 
                                WHERE comment_id=:comment_id");
-    $json = $request->getBody();
-    $data = json_decode($json);
-    $comment_id = $data->comment_id;
-    $sth->bindParam("comment_id", $comment_id);
+    $sth->bindParam("comment_id", $input['comment_id']);
     
     if($sth->execute())
         $result = "Success";
