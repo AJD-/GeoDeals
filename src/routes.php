@@ -82,73 +82,69 @@
 
 // Deals
     $app->get('/api/deals/[{location}]', function ($request, $response, $args) {
-
-            $obj = array( 'deals' => [
-                array(
-                        "deal_id"=> 1,
-                        "username"=> "rhallmark",
-                        "title"=> "Half off T-Shirts",
-                        "store"=> "Target",
-                        "description"=> "Half off kids shirt at target",
-                        "category"=> "Clothing"
-                ),
-                array(
-                        "deal_id"=> 2,
-                        "username"=> "russellrocks",
-                        "title"=> "20% off pots",
-                        "store"=> "Walmart",
-                        "description"=> "Get all the pots!",
-                        "category"=> "Kitchen"
-                ),
-                array(
-                        "deal_id"=> 3,
-                        "username"=> "kellenrocks",
-                        "title"=> "Buy one get one free pants",
-                        "store"=> "Khols",
-                        "description"=> "I got four pants for free!",
-                        "category"=> "Clothing"
-                )]
-            );
-
-
-        return $this->response->withJson($obj);
+	$sth = $this->db->prepare("SELECT deals.deal_id, username, title, store, description, category, expiration_date, posted_date, deals.updated_date, path_to_file
+				   FROM deals, users, categories, stores, pictures
+				   WHERE deals.user_id = users.user_id
+				   AND deals.category_id = categories.category_id
+				   AND deals.store_id = stores.store_id
+				   AND deals.deal_id = pictures.deal_id
+				   ORDER BY deals.updated_date //?
+	$sth->execute();
+	$deals = $sth->fetchAll()
+        return $this->response->withJson($deals);
     });
 
 
-// Get specific deal
+// Get Specific Deal
     $app->get('/api/deal/[{deal_id}]', function ($request, $response, $args) {
-
-            $obj = array(
-                "deal_id"=> 1,
-                "username"=> "rhallmark",
-                "title"=> "Half off T-Shirts",
-                "store"=> "Target",
-                "description"=> "Half off kids shirt at target",
-                "category"=> "Clothing"
-                );
-
-        return $this->response->withJson($obj);
+	$sth = $this->db->prepare("SELECT deals.deal_id, username, title, store, description, category, expiration_date, posted_date, deals.updated_date, path_to_file
+				   FROM deals, users, categories, stores, pictures
+				   WHERE deals.user_id = users.user_id
+				   AND deals.category_id = categories.category_id
+				   AND deals.store_id = stores.store_id
+				   AND deals.deal_id = pictures.deal_id
+				   AND deal_id = :deal_id");
+	$sth->bindParam("deal_id", $args['deal_id']);
+	$sth->execute();
+	$deals = $sth->fetchObject();
+        return $this->response->withJson($deals);
     });
+
+
+// Edit a Deal
+    $app->put('/api/deal/{deal_id}]', function ($request, $responese, $args) {
+	$input = $request->getParsedBody();
+	$sql = "UPDATE deals
+		SET title = :title,
+		    store = :store,
+		    description = :description,
+		    category = :category,
+		    expiration_date = :expiration_date,
+		    // pictures
+		WHERE deal_id = :deal_id";
+	$sth = $this->db->prepare($sql);
+	$sth->bindParam("title", $input['title']);
+	$sth->bindParam("store", $input['store']); //store_id?
+	$sth->bindParam("description", $input['description']);
+	$sth->bindParam("category", $input['category']); //category_id
+	$sth->bindParam("updated_date", date('Y-m-d H:i:s'));
+	// pictures
+	$sth->execute();
+	$input += ["update_date" => $currentDateTime];
+	return $this->response->withJson($input);
 
 
 
 // Add New Deal
+// TO-DO: not finish, add other info
     $app->post('/api/newdeal', function ($request, $response, $args) {
-
-            $obj = array(
-                "deal_id"=> 1,
-                "username"=> "rhallmark",
-                "title"=> "Half off T-Shirts",
-                "store"=> "Target",
-                "description"=> "Half off kids shirt at target",
-                "category"=> "Clothing",
-                "pictures"=> array(
-                        "/Pictures/DCIM/picturepath1.jpg",
-                        "/Pictures/Gallery/picturepath2.jpg"
-                    )
-                );
-
-        return $this->response->withJson($obj);
+	$input = $request->getParsedBody();
+	$sql = "INSERT INTO deals (title) VALUES (:title)";
+	$sth = $this->db->prepare($sql);
+	$sth->bindParam("title", $input['title']);
+	$sth->execute();
+	$input['deal_id'] = $this->db->lastInsertId();
+        return $this->response->withJson($input);
     });
 
 
