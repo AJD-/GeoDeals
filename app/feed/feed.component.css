@@ -17,6 +17,8 @@
 }
 .voteContainer{
 	margin-top:-25px;
+	width: 70px;
+	text-align:center;
 }
 .deal-icon{
 	height:200px;

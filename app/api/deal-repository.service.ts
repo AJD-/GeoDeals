@@ -16,7 +16,7 @@ export class DealRepository {
 		return -1;
 	}
 
-	constructor(private http: Http){
+	constructor(){
 		this._deals = [
 			{ id: 1, title: 'Deal 1', description: "SAMPLE DESCRIPTION", imagePath: 'img/tilted.png', rating: 20 },
 			{ id: 2, title: 'Deal 2', description: "SAMPLE DESCRIPTION", imagePath: 'img/unknown.png', rating: 35 },
