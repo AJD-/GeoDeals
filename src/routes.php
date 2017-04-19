@@ -101,8 +101,8 @@ $app->get('/api/profile/[{username}]', function ($request, $response, $args) {
 //Delete profile
 $app->delete('/api/profile', function ($request, $response, $args) {
     $input = $request->getParsedBody();
-    $sth = $this->db->prepare("DELETE FROM users 
-                               WHERE user_id=:user_id");
+    $sth = $this->db->prepare("DELETE FROM users
+                               WHERE user_id = :user_id");
     $sth->bindParam("user_id", $input['user_id']);
     
     if($sth->execute())
@@ -307,8 +307,9 @@ $app->get('/api/comments/[{deal_id}]', function ($request, $response, $args) {
     $sth = $this->db->prepare("SELECT username, comment, posted_date, comments.updated_date
                                FROM comments 
                                JOIN users 
-                               ON comments.user_id=users.user_id
-                               WHERE deal_id=:deal_id
+                               ON comments.user_id = users.user_id
+                               WHERE deal_id = :deal_id
+                               AND status_id = 0
                                ORDER BY posted_date");
     $sth->bindParam("deal_id", $args['deal_id']);
     $sth->execute();
@@ -318,8 +319,9 @@ $app->get('/api/comments/[{deal_id}]', function ($request, $response, $args) {
 //Delete comment
 $app->delete('/api/comment', function ($request, $response, $args) {
     $input = $request->getParsedBody();
-    $sth = $this->db->prepare("DELETE FROM comments 
-                               WHERE comment_id=:comment_id");
+    $sth = $this->db->prepare("UPDATE comments
+                               SET status_id = 4
+                               WHERE comment_id = :comment_id");
     $sth->bindParam("comment_id", $input['comment_id']);
     
     if($sth->execute())
