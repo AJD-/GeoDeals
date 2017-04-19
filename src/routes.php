@@ -277,4 +277,20 @@ $app->get('/api/comments/[{deal_id}]', function ($request, $response, $args) {
     $comments = $sth->fetchAll();
     return $this->response->withJson($comments);
 });
+//Delete comment
+$app->delete('/api/comment', function ($request, $response, $args) {
+    $sth = $this->db->prepare("DELETE FROM comments 
+                               WHERE comment_id=:comment_id");
+    $json = $request->getBody();
+    $data = json_decode($json);
+    $comment_id = $data->comment_id;
+    $sth->bindParam("comment_id", $comment_id);
+    
+    if($sth->execute())
+        $result = "Success";
+    else
+        $result = "Failure";
+
+    return $this->response->withJson(array("result" => $result));
+});
 ?>
