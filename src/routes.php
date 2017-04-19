@@ -1,25 +1,5 @@
 <?php
 // Routes
-// Register
-$app->post('/api/register', function ($request, $response) {
-    $input = $request->getParsedBody();
-    // I don't think we actually create this object,
-    // I think it's passed in as json data via the request
-    // and then we instantly input it into the table after doing
-    // some sort of hashing/salting on the pw
-    $obj = array(
-    'first_name' => 'Kellen',
-    'last_name' => 'Schmidt',
-    'email' => 'kellenschmidt@dealsinthe.us',
-    'username' => 'kelleniscool',
-    'password' => 'password',
-    'phone' => '1234567890'
-    );
-    $token = array(
-    'token' => 'fsdakf098f2p098mfakl320fal'
-    );
-    return $this->response->withJson($token);
-});
 // Change Password
 $app->post('/api/password', function ($request, $response) {
     $input = $request->getParsedBody();
@@ -36,6 +16,50 @@ $app->post('/api/signin', function ($request, $response) {
     'token' => 'fsdakf098f2p098mfakl320fal'
     );
     return $this->response->withJson($token);
+});
+// Register
+$app->post('/api/profile', function ($request, $response, $args) {
+    $input = $request->getParsedBody();
+
+    $addVote = "INSERT INTO users 
+                SET first_name = :first_name, 
+                last_name = :last_name,
+                email = :email,
+                username = :username,
+                password = :password,
+                phone = :phone, 
+                birth_date = :birth_date, 
+                email_marketing = :email_marketing,
+                creation_date = :now_date,
+                updated_date = :now_date";
+    $sth = $this->db->prepare($addVote);
+    $sth->bindParam("first_name", $input['first_name']);
+    $sth->bindParam("last_name", $input['last_name']);
+    $sth->bindParam("email", $input['email']);
+    $sth->bindParam("username", $input['username']);
+    $sth->bindParam("password", $input['password']);
+    $sth->bindParam("phone", $input['phone']);
+    $sth->bindParam("birth_date", $input['birth_date']);
+    $sth->bindParam("email_marketing", $input['email_marketing']);
+    $currentDateTime = date('Y-m-d H:i:s');
+    $sth->bindParam("now_date", $currentDateTime);
+    $sth->execute();
+
+    $outputSql = "SELECT user_id 
+                  FROM users 
+                  ORDER BY creation_date DESC
+                  LIMIT 1";
+    $output = $this->db->prepare($outputSql);
+    $output->execute();
+    $user_id = $output->fetchObject()->user_id;
+
+    $return = array(
+    'token' => 'fsdakf098f2p098mfakl320fal',
+    'creation_date' => $currentDateTime,
+    'user_id' => $user_id
+    );
+
+    return $this->response->withJson($return);
 });
 // Update Profile
 $app->put('/api/profile/[{old_username}]', function ($request, $response, $args) {
