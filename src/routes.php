@@ -74,6 +74,22 @@ $app->get('/api/profile/[{username}]', function ($request, $response, $args) {
     $user = $sth->fetchObject();
     return $this->response->withJson($user);
 });
+//Delete profile
+$app->delete('/api/profile', function ($request, $response, $args) {
+    $sth = $this->db->prepare("DELETE FROM users 
+                               WHERE user_id=:user_id");
+    $json = $request->getBody();
+    $data = json_decode($json);
+    $user_id = $data->user_id;
+    $sth->bindParam("user_id", $user_id);
+    
+    if($sth->execute())
+        $result = "Success";
+    else
+        $result = "Failure";
+
+    return $this->response->withJson(array("result" => $result));
+});
 // Deals
 $app->get('/api/deals/[{location}]', function ($request, $response, $args) {
     $obj = array( 'deals' => [
