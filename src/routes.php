@@ -331,4 +331,12 @@ $app->delete('/api/comment', function ($request, $response, $args) {
 
     return $this->response->withJson(array("result" => $result));
 });
+//Get statuses
+$app->get('/api/statuses', function ($request, $response, $args) {
+    $sth = $this->db->prepare("SELECT *
+                               FROM statuses");
+    $sth->execute();
+    $statuses = $sth->fetchAll();
+    return $this->response->withJson($statuses);
+});
 ?>
