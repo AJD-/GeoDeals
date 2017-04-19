@@ -217,11 +217,30 @@ $app->post('/api/flag', function ($request, $response, $args) {
 });
 // Post comment
 $app->post('/api/comment', function ($request, $response, $args) {
-    $obj = array(
-    "comment_id"=>1,
-    "date"=> '2017-04-10 15:45:21'
-    );
-    return $this->response->withJson($obj);
+    $input = $request->getParsedBody();
+    $sql = "INSERT INTO comments 
+            SET deal_id = :deal_id, 
+                user_id = :user_id,
+                comment = :comment,
+                posted_date = :posted_date,
+                updated_date = :updated_date";
+    $sth = $this->db->prepare($sql);
+    $sth->bindParam("deal_id", $input['deal_id']);
+    $sth->bindParam("user_id", $input['user_id']);
+    $sth->bindParam("comment", $input['comment']);
+    $currentDateTime = date('Y-m-d H:i:s');
+    $sth->bindParam("posted_date", $currentDateTime);
+    $sth->bindParam("updated_date", $currentDateTime);
+    $sth->execute();
+
+    $outputSql = "SELECT * 
+                  FROM comments 
+                  ORDER BY posted_date DESC
+                  LIMIT 1";
+    $output = $this->db->prepare($outputSql);
+    $output->execute();
+    $return = $output->fetchObject();
+    return $this->response->withJson($return);
 });
 //Get comments
 $app->get('/api/comments/[{deal_id}]', function ($request, $response, $args) {
@@ -230,7 +249,7 @@ $app->get('/api/comments/[{deal_id}]', function ($request, $response, $args) {
                                JOIN users 
                                ON comments.user_id=users.user_id
                                WHERE deal_id=:deal_id
-                               ORDER BY posted_date ASC");
+                               ORDER BY posted_date");
     $sth->bindParam("deal_id", $args['deal_id']);
     $sth->execute();
     $comments = $sth->fetchAll();
