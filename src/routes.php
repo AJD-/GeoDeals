@@ -77,8 +77,27 @@ $app->get('/api/myip', function ($request, $response, $args) {
 });
 // Change Password
 $app->post('/api/password', function ($request, $response) {
+
+    // Log http request, uses temporary sample user_id of 1
+    logRequest(1, $this);
+
     $input = $request->getParsedBody();
-    return $this->response->withJson($input);
+
+    $sql = "UPDATE users
+            SET password = :new_password
+            WHERE email = :email
+            AND password = :old_password";
+    $sth = $this->db->prepare($sql);
+    $sth->bindParam("new_password", $input['new_password']);
+    $sth->bindParam("old_password", $input['old_password']);
+    $sth->bindParam("email", $input['email']);
+    
+    if($sth->execute())
+        $result = "Success";
+    else
+        $result = "Failure";
+
+    return $this->response->withJson(array("result" => $result));
 });
 // Sign In
 $app->post('/api/signin', function ($request, $response) {
@@ -262,6 +281,26 @@ $app->post('/api/newdeal', function ($request, $response, $args) {
     )
     );
     return $this->response->withJson($obj);
+});
+//Delete deal
+$app->delete('/api/deal', function ($request, $response, $args) {
+
+    // Log http request, uses temporary sample user_id of 1
+    logRequest(1, $this);
+
+    $input = $request->getParsedBody();
+
+    $sth = $this->db->prepare("UPDATE deals
+                               SET status_id = 4
+                               WHERE deal_id = :deal_id");
+    $sth->bindParam("deal_id", $input['deal_id']);
+    
+    if($sth->execute())
+        $result = "Success";
+    else
+        $result = "Failure";
+
+    return $this->response->withJson(array("result" => $result));
 });
 // Vote
 $app->post('/api/vote', function ($request, $response, $args) {
