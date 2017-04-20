@@ -37,7 +37,8 @@ jspm_packages
 .node_repl_history
 
 # All auto-created js files
-*.js
+app/*/*.js
+app/*.js
 *.map
 
 # Don't include the server files
