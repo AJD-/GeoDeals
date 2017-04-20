@@ -3,7 +3,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
-import { NewDealComponent } from './newdeal/new-deal.component';
+import { DealDetailComponent } from './dealdetail/deal-detail.component';
 import { AddDealComponent } from './adddeal/add-deal.component';
 import { DealRepository } from '../api/deal-repository.service';
 
@@ -13,20 +13,20 @@ import { DealRepository } from '../api/deal-repository.service';
       RouterModule.forRoot([
           {
               path: 'deal/:dealid',
-              component: AddDealComponent
+              component: DealDetailComponent
           },
           {
-              path: 'deal/new',
-              component: NewDealComponent
+              path: 'new',
+              component: AddDealComponent
           }
       ]),
   ],
   declarations: [
-      NewDealComponent,
+      DealDetailComponent,
       AddDealComponent
   ],
   exports: [
-      NewDealComponent,
+      DealDetailComponent,
       AddDealComponent
   ],
   providers: [
