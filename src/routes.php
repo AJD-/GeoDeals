@@ -199,7 +199,27 @@ $app->get('/api/profile/[{username}]', function ($request, $response, $args) {
     // Log http request, uses temporary sample user_id of 1
     logRequest(1, $this);
 
-    $sth = $this->db->prepare("SELECT username, email, first_name, last_name, phone, birth_date, email_marketing, creation_date, updated_date FROM users WHERE username=:username");
+    // Changed the status to expired (status_id = 3) for all deals that are past their expiration_date
+    $expired = "UPDATE deals d1 
+                SET d1.status_id = 3 
+                WHERE d1.deal_id IN (
+                    SELECT expired_deal_ids
+                    FROM (
+                        SELECT deal_id 
+                        AS expired_deal_ids 
+                        FROM deals d3 
+                        WHERE status_id = 0 
+                        AND expiration_date < :now_date
+                    ) 
+                    AS d2
+                )";
+    $sth = $this->db->prepare($expired);
+    $sth->bindParam("now_date", date('Y-m-d H:i:s'));
+    $sth->execute();
+
+    $sth = $this->db->prepare("SELECT username, email, first_name, last_name, phone, birth_date, email_marketing, creation_date, updated_date
+                               FROM users 
+                               WHERE username = :username");
     $sth->bindParam("username", $args['username']);
     $sth->execute();
     $user = $sth->fetchObject();
