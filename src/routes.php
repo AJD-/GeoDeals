@@ -1,5 +1,80 @@
 <?php
+
+// Enable or disable logging of http requests
+$enableLogging = true;
+
+// Return the client info from the http request header
+function getHeaderInfo() {
+    $ip_address = $_SERVER['REMOTE_ADDR'];
+    $user_agent = $_SERVER['HTTP_USER_AGENT'];
+    $route = $_SERVER['REQUEST_URI'];
+    $request_method = $_SERVER['REQUEST_METHOD'];
+    preg_match('#\((.*?)\)#', $user_agent, $match);
+    $start = strrpos($user_agent, ')') + 2;
+    $end = strrpos($user_agent, ' ');
+    $browser = substr($user_agent, $start, $end-$start);
+    return array('ip_address' => $ip_address, 'operating_system' => $match[1], 'browser' => $browser, 'route' => $route, 'request_method' => $request_method);
+}
+
+// Take unformatted url suffix from http header and convert to formatted endpoint
+function getEndpointFromRoute($unformatted) {
+    // Remove backslashes ('\')
+    $endpoint = str_replace('\\', '', $unformatted);
+    // Remove '/api'
+    $endpoint = substr($endpoint, 4);
+    // Get endpoint without args
+    // If route ends with a forward slash ('/')
+    if(substr($endpoint, strlen($endpoint) - 1, 1) == '/') {
+        // Remove trailing forward slash ('/')
+        $endpoint = substr($endpoint, 0, strpos($endpoint, '/', 1));
+    // If route contains a url argument
+    } else if(strrpos($endpoint, '/', 1) != 0) {
+        // Remove url argument
+        $endpoint = substr($endpoint, 0, strrpos($endpoint, '/'));
+    }
+    return $endpoint;
+}
+
+// Log http requests in the 'requests' table
+function logRequest($user_id, $_this) {
+    
+    if(!enableLogging) return;
+
+    $headerInfo = getHeaderInfo();
+    // Get the endpoint_id for the endpoint that is in use
+    $endpoint_id_sql = "SELECT endpoint_id
+                        FROM endpoints
+                        WHERE endpoint = :endpoint
+                        AND request_type = :request_type";
+    $sth = $_this->db->prepare($endpoint_id_sql);
+    $endpoint = getEndpointFromRoute($headerInfo['route']);
+    $sth->bindParam("endpoint", $endpoint);
+    $sth->bindParam("request_type", $headerInfo['request_method']);
+    $sth->execute();
+    $endpoint_id = $sth->fetchObject()->endpoint_id;
+
+    // Insert the log data into the table
+    $sql = "INSERT INTO requests
+            SET endpoint_id = :endpoint_id,
+                user_id = :user_id,
+                request_date = :request_date,
+                ip_address = :ip_address,
+                operating_system = :operating_system,
+                browser = :browser";
+    $sth = $_this->db->prepare($sql);
+    $sth->bindParam("endpoint_id", $endpoint_id);
+    $sth->bindParam("user_id", $user_id);
+    $sth->bindParam("request_date", date('Y-m-d H:i:s'));
+    $sth->bindParam("ip_address", $headerInfo['ip_address']);
+    $sth->bindParam("operating_system", $headerInfo['operating_system']);
+    $sth->bindParam("browser", $headerInfo['browser']);
+    $sth->execute();
+}
+
 // Routes
+$app->get('/api/myip', function ($request, $response, $args) {
+    return $this->response->withJson(getHeaderInfo());
+});
 // Change Password
 $app->post('/api/password', function ($request, $response) {
     $input = $request->getParsedBody();
@@ -19,6 +94,10 @@ $app->post('/api/signin', function ($request, $response) {
 });
 // Register
 $app->post('/api/profile', function ($request, $response, $args) {
+    
+    // Log http request, uses temporary sample user_id of 1
+    logRequest(1, $this);
+
     $input = $request->getParsedBody();
 
     $addVote = "INSERT INTO users 
@@ -63,7 +142,12 @@ $app->post('/api/profile', function ($request, $response, $args) {
 });
 // Update Profile
 $app->put('/api/profile/[{old_username}]', function ($request, $response, $args) {
+
+    // Log http request, uses temporary sample user_id of 1
+    logRequest(1, $this);
+
     $input = $request->getParsedBody();
+
     $sql = "UPDATE users 
             SET first_name = :first_name, 
                 last_name = :last_name,
@@ -92,6 +176,10 @@ $app->put('/api/profile/[{old_username}]', function ($request, $response, $args)
 });
 // Get Profile
 $app->get('/api/profile/[{username}]', function ($request, $response, $args) {
+
+    // Log http request, uses temporary sample user_id of 1
+    logRequest(1, $this);
+
     $sth = $this->db->prepare("SELECT username, email, first_name, last_name, phone, birth_date, email_marketing, creation_date, updated_date FROM users WHERE username=:username");
     $sth->bindParam("username", $args['username']);
     $sth->execute();
@@ -100,7 +188,12 @@ $app->get('/api/profile/[{username}]', function ($request, $response, $args) {
 });
 //Delete profile
 $app->delete('/api/profile', function ($request, $response, $args) {
+
+    // Log http request, uses temporary sample user_id of 1
+    logRequest(1, $this);
+
     $input = $request->getParsedBody();
+
     $sth = $this->db->prepare("DELETE FROM users
                                WHERE user_id = :user_id");
     $sth->bindParam("user_id", $input['user_id']);
@@ -172,6 +265,10 @@ $app->post('/api/newdeal', function ($request, $response, $args) {
 });
 // Vote
 $app->post('/api/vote', function ($request, $response, $args) {
+
+    // Log http request, uses temporary sample user_id of 1
+    logRequest(1, $this);
+
     // Get current vote for user on specific deal
     $input = $request->getParsedBody();
     $search = "SELECT vote_type
@@ -222,6 +319,10 @@ $app->post('/api/vote', function ($request, $response, $args) {
 });
 // Get vote count
 $app->get('/api/votes/[{deal_id}]', function ($request, $response, $args) {
+
+    // Log http request, uses temporary sample user_id of 1
+    logRequest(1, $this);
+
     // Get number of upvotes
     $sth = $this->db->prepare("SELECT COUNT(vote_id) AS upvotes
                                FROM votes 
@@ -255,7 +356,12 @@ $app->post('/api/flag', function ($request, $response, $args) {
 });
 // Post comment
 $app->post('/api/comment', function ($request, $response, $args) {
+
+    // Log http request, uses temporary sample user_id of 1
+    logRequest(1, $this);
+
     $input = $request->getParsedBody();
+
     $sql = "INSERT INTO comments 
             SET deal_id = :deal_id, 
                 user_id = :user_id,
@@ -282,7 +388,12 @@ $app->post('/api/comment', function ($request, $response, $args) {
 });
 // PUT for updating comment
 $app->put('/api/comment', function ($request, $response, $args) {
+
+    // Log http request, uses temporary sample user_id of 1
+    logRequest(1, $this);
+
     $input = $request->getParsedBody();
+
     $sql = "UPDATE comments 
             SET comment = :comment,
                 updated_date = :updated_date
@@ -304,6 +415,10 @@ $app->put('/api/comment', function ($request, $response, $args) {
 });
 //Get comments
 $app->get('/api/comments/[{deal_id}]', function ($request, $response, $args) {
+
+    // Log http request, uses temporary sample user_id of 1
+    logRequest(1, $this);
+
     $sth = $this->db->prepare("SELECT username, comment, posted_date, comments.updated_date
                                FROM comments 
                                JOIN users 
@@ -318,7 +433,12 @@ $app->get('/api/comments/[{deal_id}]', function ($request, $response, $args) {
 });
 //Delete comment
 $app->delete('/api/comment', function ($request, $response, $args) {
+
+    // Log http request, uses temporary sample user_id of 1
+    logRequest(1, $this);
+
     $input = $request->getParsedBody();
+
     $sth = $this->db->prepare("UPDATE comments
                                SET status_id = 4
                                WHERE comment_id = :comment_id");
@@ -333,6 +453,10 @@ $app->delete('/api/comment', function ($request, $response, $args) {
 });
 //Get statuses
 $app->get('/api/statuses', function ($request, $response, $args) {
+
+    // Log http request, uses temporary sample user_id of 1
+    logRequest(1, $this);
+
     $sth = $this->db->prepare("SELECT *
                                FROM statuses");
     $sth->execute();
