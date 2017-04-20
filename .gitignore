@@ -38,6 +38,7 @@ jspm_packages
 
 # All auto-created js files
 app/*/*.js
+app/*/*/*.js
 app/*.js
 *.map
 
