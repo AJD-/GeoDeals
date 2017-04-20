@@ -40,3 +40,9 @@
     cursor: inherit;
     display: block;
 }
+.pictureUp{
+    height:50px;
+}
+.form-horizontal {
+    padding-top: 50px;
+}
