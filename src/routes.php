@@ -1,7 +1,7 @@
 <?php
 
 // Enable or disable logging of http requests
-$enableLogging = true;
+$enableLogging = false;
 
 // Return the client info from the http request header
 function getHeaderInfo() {
@@ -347,12 +347,57 @@ $app->get('/api/votes/[{deal_id}]', function ($request, $response, $args) {
 });
 // Flag
 $app->post('/api/flag', function ($request, $response, $args) {
-    $obj = array(
-    "report_id"=>1,
-    "reason_id"=>1,
-    "date"=> '2017-04-10 15:45:21'
+    
+    // Log http request, uses temporary sample user_id of 1
+    logRequest(1, $this);
+
+    $input = $request->getParsedBody();
+
+    $sql = "INSERT INTO reports
+            SET deal_id = :deal_id,
+                user_id = :user_id,
+                reason_id = :reason_id,
+                report_date = :report_date,
+                updated_date = :updated_date";
+    $sth = $this->db->prepare($sql);
+    $sth->bindParam("deal_id", $input['deal_id']);
+    $sth->bindParam("user_id", $input['user_id']);
+    $sth->bindParam("reason_id", $input['reason_id']);
+    $currentDateTime = date('Y-m-d H:i:s');
+    $sth->bindParam("report_date", $currentDateTime);
+    $sth->bindParam("updated_date", $currentDateTime);
+    $sth->execute();
+
+    $outputSql = "SELECT report_id 
+                  FROM reports 
+                  WHERE report_date = :report_date
+                  LIMIT 1";
+    $output = $this->db->prepare($outputSql);
+    $output->bindParam("report_date", $currentDateTime);
+    $output->execute();
+    $report_id = $output->fetchObject()->report_id;
+
+    $return = array(
+    'report_id' => $report_id,
+    'report_date' => $currentDateTime,
+    'updated_date' => $currentDateTime
     );
-    return $this->response->withJson($obj);
+
+    return $this->response->withJson($return);
+});
+// Get flag reasons
+$app->get('/api/flags', function ($request, $response, $args) {
+
+    // Log http request, uses temporary sample user_id of 1
+    logRequest(1, $this);
+    
+    $sql = "SELECT reason
+            FROM reasons";
+    $sth = $this->db->prepare($sql);
+    $sth->execute();
+    $reasons = $sth->fetchAll();
+    
+    return $this->response->withJson($reasons);
 });
 // Post comment
 $app->post('/api/comment', function ($request, $response, $args) {
