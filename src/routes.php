@@ -38,7 +38,7 @@ function getEndpointFromRoute($unformatted) {
 // Log http requests in the 'requests' table
 function logRequest($user_id, $_this) {
     
-    if(!enableLogging) return;
+    if(!$enableLogging) return;
 
     $headerInfo = getHeaderInfo();
     // Get the endpoint_id for the endpoint that is in use
