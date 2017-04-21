@@ -236,13 +236,9 @@ $app->delete('/api/profile', function ($request, $response, $args) {
     $sth = $this->db->prepare("DELETE FROM users
                                WHERE user_id = :user_id");
     $sth->bindParam("user_id", $input['user_id']);
-    
-    if($sth->execute())
-        $result = "Success";
-    else
-        $result = "Failure";
+    $sth->execute();
 
-    return $this->response->withJson(array("result" => $result));
+    return $this->response->withJson(array("rows affected" => $sth->rowCount()));
 });
 // Deals
 $app->get('/api/deals/[{location}]', function ($request, $response, $args) {
@@ -314,13 +310,9 @@ $app->delete('/api/deal', function ($request, $response, $args) {
                                SET status_id = 4
                                WHERE deal_id = :deal_id");
     $sth->bindParam("deal_id", $input['deal_id']);
-    
-    if($sth->execute())
-        $result = "Success";
-    else
-        $result = "Failure";
+    $sth->execute();
 
-    return $this->response->withJson(array("result" => $result));
+    return $this->response->withJson(array("rows affected" => $sth->rowCount()));
 });
 // Vote
 $app->post('/api/vote', function ($request, $response, $args) {
@@ -374,7 +366,7 @@ $app->post('/api/vote', function ($request, $response, $args) {
         }
     }
 
-    return $this->response->withJson();
+    return $this->response->withJson(array("rows affected" => $sth->rowCount()));
 });
 // Get vote count
 $app->get('/api/votes/[{deal_id}]', function ($request, $response, $args) {
@@ -488,6 +480,7 @@ $app->post('/api/comment', function ($request, $response, $args) {
     $output = $this->db->prepare($outputSql);
     $output->execute();
     $return = $output->fetchObject();
+
     return $this->response->withJson($return);
 });
 // PUT for updating comment
@@ -515,6 +508,7 @@ $app->put('/api/comment', function ($request, $response, $args) {
     $output = $this->db->prepare($outputSql);
     $output->execute();
     $return = $output->fetchObject();
+
     return $this->response->withJson($return);
 });
 //Get comments
@@ -533,6 +527,7 @@ $app->get('/api/comments/[{deal_id}]', function ($request, $response, $args) {
     $sth->bindParam("deal_id", $args['deal_id']);
     $sth->execute();
     $comments = $sth->fetchAll();
+
     return $this->response->withJson($comments);
 });
 //Delete comment
@@ -547,13 +542,9 @@ $app->delete('/api/comment', function ($request, $response, $args) {
                                SET status_id = 4
                                WHERE comment_id = :comment_id");
     $sth->bindParam("comment_id", $input['comment_id']);
-    
-    if($sth->execute())
-        $result = "Success";
-    else
-        $result = "Failure";
+    $sth->execute();
 
-    return $this->response->withJson(array("result" => $result));
+    return $this->response->withJson(array("rows affected" => $sth->rowCount()));
 });
 //Get statuses
 $app->get('/api/statuses', function ($request, $response, $args) {
