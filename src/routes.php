@@ -167,6 +167,14 @@ $app->put('/api/profile/[{old_username}]', function ($request, $response, $args)
 
     $input = $request->getParsedBody();
 
+    $getProfile = "SELECT first_name, last_name, email, username, phone, birth_date, email_marketing
+                   FROM users
+                   WHERE username = :old_username";
+    $sth = $this->db->prepare($getProfile);
+    $sth->bindParam("old_username", $args['old_username']);
+    $sth->execute();
+    $profile = $sth->fetchObject();
+
     $sql = "UPDATE users 
             SET first_name = :first_name, 
                 last_name = :last_name,
@@ -178,15 +186,16 @@ $app->put('/api/profile/[{old_username}]', function ($request, $response, $args)
                 updated_date = :updated_date
             WHERE username = :old_username";
     $sth = $this->db->prepare($sql);
-    $sth->bindParam("first_name", $input['first_name']);
-    $sth->bindParam("last_name", $input['last_name']);
-    $sth->bindParam("email", $input['email']);
-    $sth->bindParam("username", $input['username']);
-    $sth->bindParam("phone", $input['phone']);
-    $sth->bindParam("birth_date", $input['birth_date']);
-    $sth->bindParam("email_marketing", $input['email_marketing']);
+    $sth->bindValue("first_name", ($input['first_name'] == null ? $profile->first_name : $input['first_name']));
+    $sth->bindValue("last_name", ($input['last_name'] == null ? $profile->last_name : $input['last_name']));
+    $sth->bindValue("email", ($input['email'] == null ? $profile->email : $input['email']));
+    $sth->bindValue("username", ($input['username'] == null ? $profile->username : $input['username']));
+    $sth->bindValue("phone", ($input['phone'] == null ? $profile->phone : $input['phone']));
+    $sth->bindValue("birth_date", ($input['birth_date'] == null ? $profile->birth_date : $input['birth_date']));
+    $sth->bindValue("email_marketing", ($input['email_marketing'] == null ? $profile->email_marketing : $input['email_marketing']));
     $sth->bindParam("old_username", $args['old_username']);
-    $sth->bindParam("updated_date", date('Y-m-d H:i:s'));
+    $currentDateTime = date('Y-m-d H:i:s');
+    $sth->bindParam("updated_date", $currentDateTime);
     $sth->execute();
 
     // Add updated_date to http response
