@@ -1,5 +1,10 @@
 <?php
 
+use \Psr\Http\Message\ServerRequestInterface as Request;
+use \Psr\Http\Message\ResponseInterface as Response;
+
+use \Firebase\JWT\JWT;
+
 // Enable or disable logging of http requests
 $enableLogging = false;
 
@@ -71,10 +76,174 @@ function logRequest($user_id, $_this) {
     $sth->execute();
 }
 
+function isAuthenticated($jwt, $_this){
+    $key = "your_secret_key";
+
+    try {
+        $decoded = JWT::decode($jwt['HTTP_AUTHORIZATION'][0], $key, array('HS256'));
+    } catch (UnexpectedValueException $e) {
+        echo $e->getMessage();
+    }
+
+    if (isset($decoded)) {
+        $sql = "SELECT * FROM tokens WHERE user_id = :user_id";
+
+        try {
+            $db = $_this->db;
+            $stmt = $db->prepare($sql);
+            $stmt->bindParam("user_id", $decoded->context->user->user_id);
+            $stmt->execute();
+            $user_from_db = $stmt->fetchObject();
+            $db = null;
+
+            if (isset($user_from_db->user_id)) {
+                return true;
+            }
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+}
+
+function authError(){
+    echo json_encode([
+        "response" => "Authorization Token Error"
+    ]);
+}
+
 // Routes
 $app->get('/api/myip', function ($request, $response, $args) {
-    return $this->response->withJson(getHeaderInfo());
+
+    $jwt = $request->getHeaders();
+
+    if(isAuthenticated($jwt, $this)){
+        return $this->response->withJson(getHeaderInfo());
+    }
+    else{
+        authError();
+    }
+
 });
+// Authentication Route
+$app->post('/api/authenticate', function (Request $request, Response $response) {
+
+    $data = $request->getParsedBody();
+
+    //$result = file_get_contents('./users.json');
+    $users = json_decode($result, true);
+
+    $login = $data['user_login'];
+    $password = $data['user_password'];
+
+    $find = "SELECT * FROM users WHERE username = :username";
+    try {
+        $db = $this->db;
+        $stmt = $db->prepare($find);
+        $stmt->bindParam("username", $login);
+        $stmt->execute();
+        $returned_user = $stmt->fetchObject();
+        $db = null;
+        $current_user = null;
+
+        if ($returned_user) {
+
+            $u_id = $returned_user->user_id;
+            $u_uname = $returned_user->username;
+            $u_pw = $returned_user->password;
+
+            // $my_file = 'authfile.txt';
+            // $handle = fopen($my_file, 'w') or die('Cannot open file:  '.$my_file);
+            // fwrite($handle, $data);
+
+            // This performs the validation (unhashed/salted right now)
+            if($u_uname == $login && $u_pw == $password){
+                $current_user = array(
+                    "user_login" => $u_uname,
+                    "user_id" => $u_id
+                );
+            }
+        }
+    } catch (PDOException $e) {
+        echo '{"error":{"text":' . $e->getMessage() . '}}';
+    }
+
+
+
+    if (!isset($current_user)) {
+        echo json_encode("No user found");
+    } else {
+
+        // Find a corresponding token.
+        $sql = "SELECT * FROM tokens
+            WHERE user_id = :user_id AND date_expiration >" . time();
+
+        $token_from_db = false;
+        try {
+            $db = $this->db;
+            $stmt = $db->prepare($sql);
+            $stmt->bindParam("user_id", $current_user['user_id']);
+            $stmt->execute();
+            $token_from_db = $stmt->fetchObject();
+            $db = null;
+
+            if ($token_from_db) {
+                echo json_encode([
+                    "token"      => $token_from_db->value,
+                    "user_login" => $token_from_db->user_id
+                ]);
+            }
+        } catch (PDOException $e) {
+            echo '{"error":{"text":' . $e->getMessage() . '}}';
+        }
+
+        // Create a new token if a user is found but not a token corresponding to whom.
+        if (count($current_user) != 0 && !$token_from_db) {
+
+            // Here need to use env var for secret key -- this string for testing
+            $key = "your_secret_key";
+
+            $payload = array(
+                "iss"     => "http://your-domain.com",
+                "iat"     => time(),
+                "exp"     => time() + (3600 * 24 * 15),
+                "context" => [
+                    "user" => [
+                        "user_login" => $current_user['user_login'],
+                        "user_id"    => $current_user['user_id']
+                    ]
+                ]
+            );
+
+            try {
+                $jwt = JWT::encode($payload, $key);
+            } catch (Exception $e) {
+                echo json_encode($e);
+            }
+
+            $sql = "INSERT INTO tokens (user_id, value, date_created, date_expiration)
+                VALUES (:user_id, :value, :date_created, :date_expiration)";
+            try {
+                $db = $this->db;
+                $stmt = $db->prepare($sql);
+                $stmt->bindParam("user_id", $current_user['user_id']);
+                $stmt->bindParam("value", $jwt);
+                $stmt->bindParam("date_created", $payload['iat']);
+                $stmt->bindParam("date_expiration", $payload['exp']);
+                $stmt->execute();
+                $db = null;
+
+                echo json_encode([
+                    "token"      => $jwt,
+                    "user_login" => $current_user['user_id']
+                ]);
+            } catch (PDOException $e) {
+                echo '{"error":{"text":' . $e->getMessage() . '}}';
+            }
+        }
+    }
+});
+
+
 // Change Password
 $app->post('/api/password', function ($request, $response) {
 
