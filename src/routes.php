@@ -1,5 +1,8 @@
 <?php
 
+// require 'vendor/autoload.php';
+use Mailgun\Mailgun;
+
 // Enable or disable logging of http requests
 $enableLogging = false;
 
@@ -71,7 +74,40 @@ function logRequest($user_id, $_this) {
     $sth->execute();
 }
 
+function getVerifyEmailMessage($firstName) {
+    $message = '';
+    $message = "<html><body>";
+    $message .= "<h1> " . $firstName . ", this is a test. </h1>";
+    $message .= "</body></html>";
+
+    return $message;
+}
+
+function sendVerifyEmail($toAddress, $firstName) {
+    # First, instantiate the SDK with your API credentials
+    $mg = Mailgun::create('key-547d6d3ea18bc2442ae114c6d3506c7a');
+
+    $domain = 'sandboxa85bd8731f124076821479318eb46c44.mailgun.org';
+
+    # Now, compose and send your message.
+    $mg->messages()->send($domain, [
+        'from'    => 'donotreply@' . $domain, 
+        'to'      => $toAddress,
+        'subject' => 'Verify your email for GeoDeals', 
+        'text'    => getVerifyEmailMessage($firstName)
+    ]);
+
+    return 'email sent to ' . $firstName;
+}
+
 // Routes
+$app->post('/api/email', function ($request, $response, $args) {
+    $input = $request->getParsedBody();
+
+    $return = sendVerifyEmail($input['email'], $input['first_name']);
+
+    return $this->response->withJson(array("response" => $return));
+});
 $app->get('/api/myip', function ($request, $response, $args) {
     return $this->response->withJson(getHeaderInfo());
 });
@@ -91,13 +127,9 @@ $app->post('/api/password', function ($request, $response) {
     $sth->bindParam("new_password", $input['new_password']);
     $sth->bindParam("old_password", $input['old_password']);
     $sth->bindParam("email", $input['email']);
-    
-    if($sth->execute())
-        $result = "Success";
-    else
-        $result = "Failure";
+    $sth->execute();
 
-    return $this->response->withJson(array("result" => $result));
+    return $this->response->withJson(array("rows affected" => $sth->rowCount()));
 });
 // Sign In
 $app->post('/api/signin', function ($request, $response) {
