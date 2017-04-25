@@ -74,39 +74,131 @@ function logRequest($user_id, $_this) {
     $sth->execute();
 }
 
-function getVerifyEmailMessage($firstName) {
-    $message = '';
-    $message = "<html><body>";
-    $message .= "<h1> " . $firstName . ", this is a test. </h1>";
-    $message .= "</body></html>";
+function getVerifyEmail($firstName, $token) {
+    $link = 'http://dealsinthe.us/api/verify-email/' . $token;
+    $message = '
+    <html>
+        <head>
+            <style>
+                * {
+                    text-align: center;
+                    font-family: Arial, Helvetica, sans-serif;
+                }
+
+                body {
+                    background-color: #e8e8e8;
+                }
+
+                #main {
+                    margin: auto;
+                    width: 600px;
+                    height: 435px;
+                    background-color: white;
+                    border-radius: 3px;
+                    box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.2), 0 1px 5px 0 rgba(0,0,0,0.12);
+                }
+
+                img {
+                    width: 150px;
+                    margin-top: 5px;
+                }
+
+                h1 {
+                    margin: 26px 0;
+                }
+
+                #message {
+                    color: #5e5e5e;
+                    font-size: 17px;
+                    padding: 0 28px;
+                }
+
+                button {
+                    background: #039be5;
+                    color: white;
+                    height: 58px;
+                    width: 90%;
+                    font-size: 16px;
+                    margin: 30px 0;
+                    padding: 0 18px;
+                    border: 0;
+                    border-radius: 3px;
+                    box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.2), 0 1px 5px 0 rgba(0,0,0,0.12);
+                }
+
+                #long-link-title {
+                    color: #5e5e5e;
+                    margin-bottom: 4px;
+                }
+
+                #long-link {
+                    height: 40px;
+                }
+
+                #copyright {
+                    color: #5e5e5e;
+                    margin: 28px 0 4px 0;
+                }
+
+                #address {
+                    color: #5e5e5e;
+                    margin-top: 4px;
+                }
+            </style>
+        </head>
+        <body>
+            <div id="main">
+                <img src="cid:GeoDealDude.png">
+                <h1>Verify your email address </h1>
+                <p id="message">' . $firstName . ', please confirm that you want to use this as your GeoDeals account email address. Once it\'s done you\'ll be able to start saving! </p>
+                <button href="' . $link . '"><b>Verify my email </b></button>
+                <p id="long-link-title">Or paste this link into your browser: </p>
+                <a id="long-link" href="' . $link . '">' . $link . ' </a>
+            </div>
+            <div>
+                <p id="copyright">&copy; 2017 GeoDeals. All rights reserved. </p>
+                <p id="address">GeoDeals, 3140 Dyer St #2409 Dallas, TX 75205 </p>
+            </div>
+        </body>
+    </html>';
 
     return $message;
 }
 
-function sendVerifyEmail($toAddress, $firstName) {
+function getVerifyEmailAsText($firstName, $token) {
+    $withHtml = getVerifyEmail($firstName, $token);
+    $withoutHead = substr($withHtml, strpos($withHtml, '</head>'));
+    $withoutTags = strip_tags($withoutHead);
+    return $withoutTags;
+}
+
+function sendVerifyEmail($toAddress, $firstName, $token) {
     # First, instantiate the SDK with your API credentials
-    $mg = Mailgun::create('key-547d6d3ea18bc2442ae114c6d3506c7a');
+    $mgClient = new Mailgun('key-547d6d3ea18bc2442ae114c6d3506c7a');
 
     $domain = 'sandboxa85bd8731f124076821479318eb46c44.mailgun.org';
 
     # Now, compose and send your message.
-    $mg->messages()->send($domain, [
+    $result = $mgClient->sendMessage($domain, array(
         'from'    => 'donotreply@' . $domain, 
         'to'      => $toAddress,
-        'subject' => 'Verify your email for GeoDeals', 
-        'text'    => getVerifyEmailMessage($firstName)
-    ]);
+        'subject' => 'Verify your email for GeoDeals',
+        'text'    => getVerifyEmailAsText($firstName),
+        'html'    => getVerifyEmail($firstName, $token)
+    ), array(
+        'inline' => array('./GeoDealDude.png')
+    ));
 
-    return 'email sent to ' . $firstName;
+    return $result;
 }
 
 // Routes
 $app->post('/api/email', function ($request, $response, $args) {
     $input = $request->getParsedBody();
 
-    $return = sendVerifyEmail($input['email'], $input['first_name']);
+    $return = sendVerifyEmail($input['email'], $input['first_name'], '7d4a77bf739894ed2d4fc369a8b965c9');
 
-    return $this->response->withJson(array("response" => $return));
+    return $this->response->withJson($return);
 });
 $app->get('/api/myip', function ($request, $response, $args) {
     return $this->response->withJson(getHeaderInfo());
