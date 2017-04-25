@@ -25,3 +25,11 @@ body{
 	height:100px;
 	width:100px;
 }
+.alert ul{
+    padding-left:0px;
+    list-style:none;
+}
+form .ng-invalid.ng-touched{
+    background: pink;
+    border: 1px solid red;
+}
