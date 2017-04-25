@@ -20,6 +20,7 @@ import { DealRepository } from '../api/deal-repository.service';
               component: AddDealComponent
           }
       ]),
+      FormsModule
   ],
   declarations: [
       DealDetailComponent,
