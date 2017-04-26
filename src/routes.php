@@ -161,7 +161,7 @@ function generateToken($user, $user_id, $_this){
     } catch (PDOException $e) {
         return null;    
     }
-
+}
   
 // Get HTML of confirmation email
 function getVerifyEmail($firstName, $token) {
