@@ -1,9 +1,7 @@
 <?php
 
 use Mailgun\Mailgun;
-
-// Enable or disable logging of http requests
-$enableLogging = false;
+use \Firebase\JWT\JWT;
 
 // Return the client info from the http request header
 function getHeaderInfo() {
@@ -22,8 +20,9 @@ function getHeaderInfo() {
 function getEndpointFromRoute($unformatted) {
     // Remove backslashes ('\')
     $endpoint = str_replace('\\', '', $unformatted);
-    // Remove '/api'
-    $endpoint = substr($endpoint, 4);
+    // Remove everything up to and including '/api'
+    $start = strpos($endpoint, '/api');
+    $endpoint = substr($endpoint, $start + 4);
     // Get endpoint without args
     // If route ends with a forward slash ('/')
     if(substr($endpoint, strlen($endpoint) - 1, 1) == '/') {
@@ -38,9 +37,12 @@ function getEndpointFromRoute($unformatted) {
 }
 
 // Log http requests in the 'requests' table
-function logRequest($user_id, $_this) {
-    
-    if(!$enableLogging) return;
+function logRequest($_request, $_this) {
+    // Get user_id from jwt in authorization header
+    $key = "your_secret_key";
+    $jwt = $_request->getHeaders();
+    $decoded = JWT::decode($jwt['HTTP_AUTHORIZATION'][0], $key, array('HS256'));
+    $user_id = $decoded->context->user->user_id;
 
     $headerInfo = getHeaderInfo();
     // Get the endpoint_id for the endpoint that is in use
@@ -311,8 +313,8 @@ function sendVerifyEmail($toAddress, $firstName, $token) {
 // Verify email
 $app->get('/api/verify-email/[{token}]', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $sql = "UPDATE users
             SET verified = 1
@@ -337,8 +339,8 @@ $app->get('/api/myip', function ($request, $response, $args) {
 // Change Password
 $app->post('/api/password', function ($request, $response) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -369,8 +371,8 @@ $app->post('/api/signin', function ($request, $response) {
 // Register
 $app->post('/api/profile', function ($request, $response, $args) {
     
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -423,8 +425,8 @@ $app->post('/api/profile', function ($request, $response, $args) {
 // Update Profile
 $app->put('/api/profile/[{old_username}]', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -466,8 +468,8 @@ $app->put('/api/profile/[{old_username}]', function ($request, $response, $args)
 // Get Profile
 $app->get('/api/profile/[{username}]', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     // Changed the status to expired (status_id = 3) for all deals that are past their expiration_date
     $expired = "UPDATE deals d1 
@@ -498,8 +500,8 @@ $app->get('/api/profile/[{username}]', function ($request, $response, $args) {
 //Delete profile
 $app->delete('/api/profile', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -571,8 +573,8 @@ $app->post('/api/newdeal', function ($request, $response, $args) {
 //Delete deal
 $app->delete('/api/deal', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -587,8 +589,8 @@ $app->delete('/api/deal', function ($request, $response, $args) {
 // Vote
 $app->post('/api/vote', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     // Get current vote for user on specific deal
     $input = $request->getParsedBody();
@@ -641,8 +643,8 @@ $app->post('/api/vote', function ($request, $response, $args) {
 // Get vote count
 $app->get('/api/votes/[{deal_id}]', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     // Get number of upvotes
     $sth = $this->db->prepare("SELECT COUNT(vote_id) AS upvotes
@@ -669,8 +671,8 @@ $app->get('/api/votes/[{deal_id}]', function ($request, $response, $args) {
 // Flag
 $app->post('/api/flag', function ($request, $response, $args) {
     
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -709,8 +711,8 @@ $app->post('/api/flag', function ($request, $response, $args) {
 // Get flag reasons
 $app->get('/api/flags', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
     
     $sql = "SELECT reason
             FROM reasons";
@@ -723,8 +725,8 @@ $app->get('/api/flags', function ($request, $response, $args) {
 // Post comment
 $app->post('/api/comment', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -756,8 +758,8 @@ $app->post('/api/comment', function ($request, $response, $args) {
 // PUT for updating comment
 $app->put('/api/comment', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -784,8 +786,8 @@ $app->put('/api/comment', function ($request, $response, $args) {
 //Get comments
 $app->get('/api/comments/[{deal_id}]', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $sth = $this->db->prepare("SELECT username, comment, posted_date, comments.updated_date
                                FROM comments 
@@ -803,8 +805,8 @@ $app->get('/api/comments/[{deal_id}]', function ($request, $response, $args) {
 //Delete comment
 $app->delete('/api/comment', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -819,8 +821,8 @@ $app->delete('/api/comment', function ($request, $response, $args) {
 //Get statuses
 $app->get('/api/statuses', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $sth = $this->db->prepare("SELECT *
                                FROM statuses");
