@@ -19,7 +19,7 @@ return [
 	// Database settings
         "db" => [
             "host" => "localhost",
-            "dbname" => "proj1",
+            "dbname" => "geo_deals",
             "user" => "root",
             "pass" => "secretPass!"
         ],

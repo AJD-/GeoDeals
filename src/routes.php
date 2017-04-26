@@ -482,19 +482,26 @@ $app->post('/api/signin', function (Request $request, Response $response) {
 
             $u_id = $returned_user->user_id;
             $u_uname = $returned_user->username;
-            $u_pw = $returned_user->password;
+            $hashed_pw = $returned_user->password;
 
             // $my_file = 'authfile.txt';
             // $handle = fopen($my_file, 'w') or die('Cannot open file:  '.$my_file);
             // fwrite($handle, $data);
 
+                if(password_verify($password, $hashed_pw)){
+                    $current_user = array(
+                        "user_login" => $u_uname,
+                        "user_id" => $u_id
+                    );
+                }
+
             // This performs the validation (unhashed/salted right now)
-            if($u_uname == $login && $u_pw == $password){
-                $current_user = array(
-                    "user_login" => $u_uname,
-                    "user_id" => $u_id
-                );
-            }
+            // if($u_uname == $login && $u_pw == $hashed_pw){
+            //     $current_user = array(
+            //         "user_login" => $u_uname,
+            //         "user_id" => $u_id
+            //     );
+            // }
         }
     } catch (PDOException $e) {
         echo '{"error":{"text":' . $e->getMessage() . '}}';
@@ -551,6 +558,12 @@ $app->post('/api/profile', function ($request, $response, $args) {
 
     $input = $request->getParsedBody();
 
+    $options = [
+        'cost' => 12,
+    ];
+    $hashed_pw = password_hash($input['password'], PASSWORD_BCRYPT, $options);
+    //$hashed_pw = password_hash($input['password'], PASSWORD_DEFAULT);
+
     $addVote = "INSERT INTO users 
                 SET first_name = :first_name, 
                 last_name = :last_name,
@@ -567,7 +580,7 @@ $app->post('/api/profile', function ($request, $response, $args) {
     $sth->bindParam("last_name", $input['last_name']);
     $sth->bindParam("email", $input['email']);
     $sth->bindParam("username", $input['username']);
-    $sth->bindParam("password", $input['password']);
+    $sth->bindParam("password", $hashed_pw);
     $sth->bindParam("phone", $input['phone']);
     $sth->bindParam("birth_date", $input['birth_date']);
     $sth->bindParam("email_marketing", $input['email_marketing']);
@@ -585,6 +598,7 @@ $app->post('/api/profile', function ($request, $response, $args) {
     $user_id = $result->user_id;
 
     $jwt = generateToken($input['username'], $user_id, $this);
+
 
     $email = sendVerifyEmail($input['email'], $input['first_name'], $jwt);
 
