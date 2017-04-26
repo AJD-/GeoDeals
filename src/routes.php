@@ -468,12 +468,6 @@ $app->post('/api/signin', function (Request $request, Response $response) {
     $login = $data['user_login'];
     $password = $data['user_password'];
 
-    // $options = [
-    //     'cost' => 12,
-    // ];
-    // $hashed_pw = password_hash($password, PASSWORD_BCRYPT, $options)."\n";
-
-
     $find = "SELECT * FROM users WHERE username = :username";
     try {
         $db = $this->db;
@@ -605,7 +599,8 @@ $app->post('/api/profile', function ($request, $response, $args) {
 
     $jwt = generateToken($input['username'], $user_id, $this);
 
-    //$email = sendVerifyEmail($input['email'], $input['first_name'], $jwt);
+
+    $email = sendVerifyEmail($input['email'], $input['first_name'], $jwt);
 
     if($jwt != null)
     {
@@ -613,7 +608,7 @@ $app->post('/api/profile', function ($request, $response, $args) {
             'token' => $jwt,
             'creation_date' => $currentDateTime,
             'user_id' => $user_id,
-            'email_response' => "testing"
+            'email_response' => $email
         );
     }
     else{
