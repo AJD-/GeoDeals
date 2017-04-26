@@ -1,6 +1,5 @@
 <?php
 
-// require 'vendor/autoload.php';
 use Mailgun\Mailgun;
 
 // Enable or disable logging of http requests
@@ -74,6 +73,7 @@ function logRequest($user_id, $_this) {
     $sth->execute();
 }
 
+// Get HTML of confirmation email
 function getVerifyEmail($firstName, $token) {
     $link = 'http://dealsinthe.us/api/verify-email/' . $token;
     $message = '
@@ -90,21 +90,26 @@ function getVerifyEmail($firstName, $token) {
                 }
 
                 #main {
+                    display: block;
                     margin: auto;
+                    padding-bottom: 30px;
                     width: 600px;
-                    height: 435px;
                     background-color: white;
                     border-radius: 3px;
                     box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.2), 0 1px 5px 0 rgba(0,0,0,0.12);
                 }
 
-                img {
-                    width: 150px;
-                    margin-top: 5px;
+                #hero-img {
+                    margin-top: 25px;
+                }
+
+                #bottom-img {
+                    margin-top: 14px;
                 }
 
                 h1 {
-                    margin: 26px 0;
+                    color: black;
+                    margin: 36px 0 24px 0;
                 }
 
                 #message {
@@ -113,26 +118,24 @@ function getVerifyEmail($firstName, $token) {
                     padding: 0 28px;
                 }
 
-                button {
+                #button {
+                    display: block;
                     background: #039be5;
                     color: white;
                     height: 58px;
+                    line-height: 58px;
                     width: 90%;
                     font-size: 16px;
-                    margin: 30px 0;
-                    padding: 0 18px;
+                    text-decoration: none;
+                    margin: 34px auto;
+                    padding: auto 0;
                     border: 0;
                     border-radius: 3px;
                     box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.2), 0 1px 5px 0 rgba(0,0,0,0.12);
                 }
 
-                #long-link-title {
+                #bottom-comment {
                     color: #5e5e5e;
-                    margin-bottom: 4px;
-                }
-
-                #long-link {
-                    height: 40px;
                 }
 
                 #copyright {
@@ -148,16 +151,16 @@ function getVerifyEmail($firstName, $token) {
         </head>
         <body>
             <div id="main">
-                <img src="cid:GeoDealDude.png">
+                <img id="hero-img" src="cid:GeoDealsLogo7.png" width="210">
                 <h1>Verify your email address </h1>
                 <p id="message">' . $firstName . ', please confirm that you want to use this as your GeoDeals account email address. Once it\'s done you\'ll be able to start saving! </p>
-                <button href="' . $link . '"><b>Verify my email </b></button>
-                <p id="long-link-title">Or paste this link into your browser: </p>
-                <a id="long-link" href="' . $link . '">' . $link . ' </a>
+                <a id="button" href="' . $link . '"><b>Verify my email </b></a>
+                <p id="bottom-comment">If you did not sign up for GeoDeals please ignore this email. </p>
             </div>
             <div>
                 <p id="copyright">&copy; 2017 GeoDeals. All rights reserved. </p>
                 <p id="address">GeoDeals, 3140 Dyer St #2409 Dallas, TX 75205 </p>
+                <img id="bottom-img" src="cid:GeoDealDude.png" width="160">
             </div>
         </body>
     </html>';
@@ -165,6 +168,7 @@ function getVerifyEmail($firstName, $token) {
     return $message;
 }
 
+// Get email content as text without html or css
 function getVerifyEmailAsText($firstName, $token) {
     $withHtml = getVerifyEmail($firstName, $token);
     $withoutHead = substr($withHtml, strpos($withHtml, '</head>'));
@@ -172,6 +176,7 @@ function getVerifyEmailAsText($firstName, $token) {
     return $withoutTags;
 }
 
+// Send verification email with link to verify email
 function sendVerifyEmail($toAddress, $firstName, $token) {
     # First, instantiate the SDK with your API credentials
     $mgClient = new Mailgun('key-547d6d3ea18bc2442ae114c6d3506c7a');
@@ -183,22 +188,36 @@ function sendVerifyEmail($toAddress, $firstName, $token) {
         'from'    => 'donotreply@' . $domain, 
         'to'      => $toAddress,
         'subject' => 'Verify your email for GeoDeals',
-        'text'    => getVerifyEmailAsText($firstName),
+        'text'    => getVerifyEmailAsText($firstName, $token),
         'html'    => getVerifyEmail($firstName, $token)
     ), array(
-        'inline' => array('./GeoDealDude.png')
+        'inline' => array('./GeoDealDude.png', './GeoDealsLogo7.png')
     ));
 
     return $result;
 }
 
 // Routes
-$app->post('/api/email', function ($request, $response, $args) {
-    $input = $request->getParsedBody();
+// Verify email
+$app->get('/api/verify-email/[{token}]', function ($request, $response, $args) {
 
-    $return = sendVerifyEmail($input['email'], $input['first_name'], '7d4a77bf739894ed2d4fc369a8b965c9');
+    // Log http request, uses temporary sample user_id of 1
+    logRequest(1, $this);
 
-    return $this->response->withJson($return);
+    $sql = "UPDATE users
+            SET verified = 1
+            WHERE user_id = (
+                SELECT user_id
+                FROM tokens
+                WHERE token = :token
+            )";
+    $sth = $this->db->prepare($sql);
+    $sth->bindParam("token", $args['token']);
+    $sth->execute();
+
+    // Write nice HTML page here
+
+    return $this->response->withJson(array("rows affected" => $sth->rowCount()));
 });
 $app->get('/api/myip', function ($request, $response, $args) {
     return $this->response->withJson(getHeaderInfo());
@@ -267,18 +286,24 @@ $app->post('/api/profile', function ($request, $response, $args) {
     $sth->bindParam("now_date", $currentDateTime);
     $sth->execute();
 
-    $outputSql = "SELECT user_id 
+    $outputSql = "SELECT user_id, token
                   FROM users 
-                  ORDER BY creation_date DESC
+                  NATURAL JOIN tokens
+                  ORDER BY users.creation_date DESC
                   LIMIT 1";
     $output = $this->db->prepare($outputSql);
     $output->execute();
-    $user_id = $output->fetchObject()->user_id;
+    $result = $output->fetchObject();
+    $user_id = $result->user_id;
+    $token = $result->token;
+
+    $email = sendVerifyEmail($input['email'], $input['first_name'], $token);
 
     $return = array(
-    'token' => 'TemporaryTokenPleaseImplementMe',
+    'token' => $token,
     'creation_date' => $currentDateTime,
-    'user_id' => $user_id
+    'user_id' => $user_id,
+    'email_response' => $email
     );
 
     return $this->response->withJson($return);
