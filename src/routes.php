@@ -77,6 +77,9 @@ function logRequest($user_id, $_this) {
 }
 
 function isAuthenticated($jwt, $_this){
+    // Potentially need to check expiration on successive requests
+    // Should I also confirm the JWT they're sending is correct?
+    // Not merely confirm that they're authenticated.
     $key = "your_secret_key";
 
     try {
@@ -124,8 +127,34 @@ $app->get('/api/myip', function ($request, $response, $args) {
     }
 
 });
-// Authentication Route
-$app->post('/api/authenticate', function (Request $request, Response $response) {
+
+// Change Password
+$app->post('/api/password', function ($request, $response) {
+
+    // Log http request, uses temporary sample user_id of 1
+    logRequest(1, $this);
+
+    $input = $request->getParsedBody();
+
+    $sql = "UPDATE users
+            SET password = :new_password
+            WHERE email = :email
+            AND password = :old_password";
+    $sth = $this->db->prepare($sql);
+    $sth->bindParam("new_password", $input['new_password']);
+    $sth->bindParam("old_password", $input['old_password']);
+    $sth->bindParam("email", $input['email']);
+    
+    if($sth->execute())
+        $result = "Success";
+    else
+        $result = "Failure";
+
+    return $this->response->withJson(array("result" => $result));
+});
+
+// Sign In
+$app->post('/api/signin', function (Request $request, Response $response) {
 
     $data = $request->getParsedBody();
 
@@ -188,8 +217,8 @@ $app->post('/api/authenticate', function (Request $request, Response $response) 
 
             if ($token_from_db) {
                 echo json_encode([
-                    "token"      => $token_from_db->value,
-                    "user_login" => $token_from_db->user_id
+                    "token"      => $token_from_db->token,
+                    "user_login" => $token_from_db->id
                 ]);
             }
         } catch (PDOException $e) {
@@ -203,7 +232,7 @@ $app->post('/api/authenticate', function (Request $request, Response $response) 
             $key = "your_secret_key";
 
             $payload = array(
-                "iss"     => "http://your-domain.com",
+                "iss"     => "http://www.dealsinthe.us",
                 "iat"     => time(),
                 "exp"     => time() + (3600 * 24 * 15),
                 "context" => [
@@ -220,13 +249,13 @@ $app->post('/api/authenticate', function (Request $request, Response $response) 
                 echo json_encode($e);
             }
 
-            $sql = "INSERT INTO tokens (user_id, value, date_created, date_expiration)
-                VALUES (:user_id, :value, :date_created, :date_expiration)";
+            $sql = "INSERT INTO tokens (user_id, token, date_created, date_expiration)
+                VALUES (:user_id, :token, :date_created, :date_expiration)";
             try {
                 $db = $this->db;
                 $stmt = $db->prepare($sql);
                 $stmt->bindParam("user_id", $current_user['user_id']);
-                $stmt->bindParam("value", $jwt);
+                $stmt->bindParam("token", $jwt);
                 $stmt->bindParam("date_created", $payload['iat']);
                 $stmt->bindParam("date_expiration", $payload['exp']);
                 $stmt->execute();
@@ -243,43 +272,6 @@ $app->post('/api/authenticate', function (Request $request, Response $response) 
     }
 });
 
-
-// Change Password
-$app->post('/api/password', function ($request, $response) {
-
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
-
-    $input = $request->getParsedBody();
-
-    $sql = "UPDATE users
-            SET password = :new_password
-            WHERE email = :email
-            AND password = :old_password";
-    $sth = $this->db->prepare($sql);
-    $sth->bindParam("new_password", $input['new_password']);
-    $sth->bindParam("old_password", $input['old_password']);
-    $sth->bindParam("email", $input['email']);
-    
-    if($sth->execute())
-        $result = "Success";
-    else
-        $result = "Failure";
-
-    return $this->response->withJson(array("result" => $result));
-});
-// Sign In
-$app->post('/api/signin', function ($request, $response) {
-    $input = $request->getParsedBody();
-    $obj = array(
-    'email' => 'kellenschmidt@dealsinthe.us',
-    'password' => 'password'
-    );
-    $token = array(
-    'token' => 'fsdakf098f2p098mfakl320fal'
-    );
-    return $this->response->withJson($token);
-});
 // Register
 $app->post('/api/profile', function ($request, $response, $args) {
     
