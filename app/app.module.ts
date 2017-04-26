@@ -2,6 +2,10 @@ import { NgModule }      from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { HttpModule } from '@angular/http';
+import { Http, Headers, Response } from '@angular/http';
+import { InMemoryWebApiModule } from 'angular-in-memory-web-api';
+import { MockApiService } from './mock-api.service';
 
 import { AppComponent }   from './app.component';
 import { HomeComponent }   from './home/home.component';
@@ -34,7 +38,9 @@ import { DealModule } from './deal/deal.module';
         }
     ]),
       DealModule,
-      FormsModule
+      FormsModule,
+      HttpModule,
+      RouterModule
 ],
   declarations: [ AppComponent, HomeComponent, SignupComponent, LoginComponent, FeedComponent ],
   providers: [ DealRepository ],
