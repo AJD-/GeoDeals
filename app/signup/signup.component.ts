@@ -1,4 +1,6 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { User } from '../api/user';
 
 
 @Component({
@@ -9,10 +11,14 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 
 export class SignupComponent { 
 	@Output() titleUpdated : EventEmitter<string> = new EventEmitter();
-	title : string;
+    title: string;
+    user: any = {};
 
 	constructor(){
 		this.title = "Sign Up";
-		this.titleUpdated.emit(this.title);
-	}
+        this.titleUpdated.emit(this.title);
+    }
+    submit() {
+
+    }
 }
