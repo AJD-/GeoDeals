@@ -168,6 +168,116 @@ function getVerifyEmail($firstName, $token) {
     return $message;
 }
 
+function getVerifiedResponse() {
+    $html = '
+    <html>
+        <head>
+            <style>
+                * {
+                    font-family: Arial, Helvetica, sans-serif;
+                }
+
+                body {
+                    background-color: #e8e8e8;
+                }
+
+                #main {
+                    display: block;
+                    margin: auto;
+                    padding-bottom: 15px;
+                    width: 620px;
+                    background-color: white;
+                    border-radius: 3px;
+                    box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.2), 0 1px 5px 0 rgba(0,0,0,0.12);
+                    /* Makes hero image margin-top and center work */
+                    overflow: hidden;
+                }
+
+                #hero-img {
+                    display: block;
+                    margin-left: auto;
+                    margin-right: auto;
+                    margin-top: 25px;
+                }
+
+                #bottom-img {
+                    margin-top: 14px;
+                }
+
+                h1 {
+                    color: black;
+                    margin: 36px 0 24px 0;
+                    padding: 0 28px;
+                }
+
+                .message {
+                    color: #5e5e5e;
+                    font-size: 17px;
+                    padding: 0 28px;
+                }
+
+                #greeting {
+                    margin-bottom: 2px;
+                }
+
+                #signature {
+                    margin: 0;
+                }
+
+                #button {
+                    display: block;
+                    background: #039be5;
+                    color: white;
+                    height: 58px;
+                    line-height: 58px;
+                    width: 90%;
+                    font-size: 16px;
+                    text-align: center;
+                    text-decoration: none;
+                    margin: 34px auto;
+                    padding: auto 0;
+                    border: 0;
+                    border-radius: 3px;
+                    box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.2), 0 1px 5px 0 rgba(0,0,0,0.12);
+                }
+
+                #bottom {
+                    text-align: center;
+                }
+
+                #copyright {
+                    color: #5e5e5e;
+                    margin: 28px 0 4px 0;
+                    font-size: 14px;
+                }
+
+                #address {
+                    color: #5e5e5e;
+                    margin-top: 4px;
+                    font-size: 14px;
+                }
+            </style>
+        </head>
+        <body>
+            <div id="main">
+                <img id="hero-img" src="/slim-app/public/GeoDealsLogo7.png" width="210">
+                <h1>Your email address has been verified</h1>
+                <p class="message">Thank you, your account has been activated and you\'re now ready to begin using GeoDeals. Happy saving! </p>
+                <p class="message" id="greeting">Sincerely, </p>
+                <p class="message" id="signature">The GeoDeals Team </p>
+                <a id="button" href="http://dealsinthe.us"><b>Go To GeoDeals</b></a>
+            </div>
+            <div id="bottom">
+                <p id="copyright">&copy; 2017 GeoDeals. All rights reserved. </p>
+                <p id="address">GeoDeals, 3140 Dyer St #2409 Dallas, TX 75205 </p>
+                <img id="bottom-img" src="/slim-app/public/GeoDealDude.png" width="160">
+            </div>
+        </body>
+    </html>';
+
+    return $html;
+}
+
 // Get email content as text without html or css
 function getVerifyEmailAsText($firstName, $token) {
     $withHtml = getVerifyEmail($firstName, $token);
@@ -181,11 +291,11 @@ function sendVerifyEmail($toAddress, $firstName, $token) {
     # First, instantiate the SDK with your API credentials
     $mgClient = new Mailgun('key-547d6d3ea18bc2442ae114c6d3506c7a');
 
-    $domain = 'sandboxa85bd8731f124076821479318eb46c44.mailgun.org';
+    $domain = 'mg.dealsinthe.us';
 
     # Now, compose and send your message.
     $result = $mgClient->sendMessage($domain, array(
-        'from'    => 'donotreply@' . $domain, 
+        'from'    => 'donotreply@dealsinthe.us', 
         'to'      => $toAddress,
         'subject' => 'Verify your email for GeoDeals',
         'text'    => getVerifyEmailAsText($firstName, $token),
@@ -215,9 +325,11 @@ $app->get('/api/verify-email/[{token}]', function ($request, $response, $args) {
     $sth->bindParam("token", $args['token']);
     $sth->execute();
 
-    // Write nice HTML page here
+    // Return HTML confirmation page with link to GeoDeals
+    $body = $response->getBody();
+    $body->write(getVerifiedResponse());
 
-    return $this->response->withJson(array("rows affected" => $sth->rowCount()));
+    return $this->response->getBody();
 });
 $app->get('/api/myip', function ($request, $response, $args) {
     return $this->response->withJson(getHeaderInfo());
