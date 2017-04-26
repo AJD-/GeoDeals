@@ -114,6 +114,46 @@ function authError(){
     ]);
 }
 
+function generateToken($user, $user_id, $_this){
+
+    // Here need to use env var for secret key -- this string for testing
+    $key = "your_secret_key";
+
+    $payload = array(
+        "iss"     => "http://www.dealsinthe.us",
+        "iat"     => time(),
+        "exp"     => time() + (3600 * 24 * 15),
+        "context" => [
+            "user" => [
+                "user_login" => $user,
+                "user_id"    => $user_id
+            ]
+        ]
+    );
+
+    try {
+        $jwt = JWT::encode($payload, $key);
+    } catch (Exception $e) {
+        echo json_encode($e);
+    }
+
+    $sql = "INSERT INTO tokens (user_id, token, date_created, date_expiration)
+        VALUES (:user_id, :token, :date_created, :date_expiration)";
+    try{
+        $db = $_this->db;
+        $stmt = $db->prepare($sql);
+        $stmt->bindParam("user_id", $user_id);
+        $stmt->bindParam("token", $jwt);
+        $stmt->bindParam("date_created", $payload['iat']);
+        $stmt->bindParam("date_expiration", $payload['exp']);
+        $stmt->execute();
+        $db = null;
+        return $jwt;
+    } catch (PDOException $e) {
+        return null;    
+    }
+}
+
 // Routes
 $app->get('/api/myip', function ($request, $response, $args) {
 
@@ -196,10 +236,8 @@ $app->post('/api/signin', function (Request $request, Response $response) {
         echo '{"error":{"text":' . $e->getMessage() . '}}';
     }
 
-
-
     if (!isset($current_user)) {
-        echo json_encode("No user found");
+        echo json_encode("No user with that user/password combination");
     } else {
 
         // Find a corresponding token.
@@ -225,48 +263,20 @@ $app->post('/api/signin', function (Request $request, Response $response) {
             echo '{"error":{"text":' . $e->getMessage() . '}}';
         }
 
-        // Create a new token if a user is found but not a token corresponding to whom.
+        // Create a new token if a user is found but no token is found for them
         if (count($current_user) != 0 && !$token_from_db) {
 
-            // Here need to use env var for secret key -- this string for testing
-            $key = "your_secret_key";
+            $jwt = generateToken($current_user['user_login'], $current_user['user_id'], $this);
 
-            $payload = array(
-                "iss"     => "http://www.dealsinthe.us",
-                "iat"     => time(),
-                "exp"     => time() + (3600 * 24 * 15),
-                "context" => [
-                    "user" => [
-                        "user_login" => $current_user['user_login'],
-                        "user_id"    => $current_user['user_id']
-                    ]
-                ]
-            );
-
-            try {
-                $jwt = JWT::encode($payload, $key);
-            } catch (Exception $e) {
-                echo json_encode($e);
-            }
-
-            $sql = "INSERT INTO tokens (user_id, token, date_created, date_expiration)
-                VALUES (:user_id, :token, :date_created, :date_expiration)";
-            try {
-                $db = $this->db;
-                $stmt = $db->prepare($sql);
-                $stmt->bindParam("user_id", $current_user['user_id']);
-                $stmt->bindParam("token", $jwt);
-                $stmt->bindParam("date_created", $payload['iat']);
-                $stmt->bindParam("date_expiration", $payload['exp']);
-                $stmt->execute();
-                $db = null;
-
+            if($jwt != null)
+            {
                 echo json_encode([
                     "token"      => $jwt,
                     "user_login" => $current_user['user_id']
                 ]);
-            } catch (PDOException $e) {
-                echo '{"error":{"text":' . $e->getMessage() . '}}';
+            }
+            else{
+                echo '{"error":{"text": "Error during token generation"}}';
             }
         }
     }
