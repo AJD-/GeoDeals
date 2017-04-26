@@ -322,11 +322,19 @@ $app->post('/api/profile', function ($request, $response, $args) {
     $output->execute();
     $user_id = $output->fetchObject()->user_id;
 
-    $return = array(
-    'token' => 'TemporaryTokenPleaseImplementMe',
-    'creation_date' => $currentDateTime,
-    'user_id' => $user_id
-    );
+    $jwt = generateToken($input['username'], $user_id, $this);
+
+    if($jwt != null)
+    {
+        $return = array(
+            'token' => $jwt,
+            'creation_date' => $currentDateTime,
+            'user_id' => $user_id
+        );
+    }
+    else{
+        $return = '{"error":{"text": "Error during token generation"}}';
+    }
 
     return $this->response->withJson($return);
 });
