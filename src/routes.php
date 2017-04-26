@@ -2,11 +2,8 @@
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
-
+use Mailgun\Mailgun;
 use \Firebase\JWT\JWT;
-
-// Enable or disable logging of http requests
-$enableLogging = false;
 
 // Return the client info from the http request header
 function getHeaderInfo() {
@@ -25,8 +22,9 @@ function getHeaderInfo() {
 function getEndpointFromRoute($unformatted) {
     // Remove backslashes ('\')
     $endpoint = str_replace('\\', '', $unformatted);
-    // Remove '/api'
-    $endpoint = substr($endpoint, 4);
+    // Remove everything up to and including '/api'
+    $start = strpos($endpoint, '/api');
+    $endpoint = substr($endpoint, $start + 4);
     // Get endpoint without args
     // If route ends with a forward slash ('/')
     if(substr($endpoint, strlen($endpoint) - 1, 1) == '/') {
@@ -41,9 +39,12 @@ function getEndpointFromRoute($unformatted) {
 }
 
 // Log http requests in the 'requests' table
-function logRequest($user_id, $_this) {
-    
-    if(!$enableLogging) return;
+function logRequest($_request, $_this) {
+    // Get user_id from jwt in authorization header
+    $key = "your_secret_key";
+    $jwt = $_request->getHeaders();
+    $decoded = JWT::decode($jwt['HTTP_AUTHORIZATION'][0], $key, array('HS256'));
+    $user_id = $decoded->context->user->user_id;
 
     $headerInfo = getHeaderInfo();
     // Get the endpoint_id for the endpoint that is in use
@@ -75,6 +76,7 @@ function logRequest($user_id, $_this) {
     $sth->bindParam("browser", $headerInfo['browser']);
     $sth->execute();
 }
+
 
 function isAuthenticated($jwt, $_this){
     // Potentially need to check expiration on successive requests
@@ -152,9 +154,266 @@ function generateToken($user, $user_id, $_this){
     } catch (PDOException $e) {
         return null;    
     }
+
+  
+// Get HTML of confirmation email
+function getVerifyEmail($firstName, $token) {
+    $link = 'http://dealsinthe.us/api/verify-email/' . $token;
+    $message = '
+    <html>
+        <head>
+            <style>
+                * {
+                    text-align: center;
+                    font-family: Arial, Helvetica, sans-serif;
+                }
+
+                body {
+                    background-color: #e8e8e8;
+                }
+
+                #main {
+                    display: block;
+                    margin: auto;
+                    padding-bottom: 30px;
+                    width: 600px;
+                    background-color: white;
+                    border-radius: 3px;
+                    box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.2), 0 1px 5px 0 rgba(0,0,0,0.12);
+                }
+
+                #hero-img {
+                    margin-top: 25px;
+                }
+
+                #bottom-img {
+                    margin-top: 14px;
+                }
+
+                h1 {
+                    color: black;
+                    margin: 36px 0 24px 0;
+                }
+
+                #message {
+                    color: #5e5e5e;
+                    font-size: 17px;
+                    padding: 0 28px;
+                }
+
+                #button {
+                    display: block;
+                    background: #039be5;
+                    color: white;
+                    height: 58px;
+                    line-height: 58px;
+                    width: 90%;
+                    font-size: 16px;
+                    text-decoration: none;
+                    margin: 34px auto;
+                    padding: auto 0;
+                    border: 0;
+                    border-radius: 3px;
+                    box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.2), 0 1px 5px 0 rgba(0,0,0,0.12);
+                }
+
+                #bottom-comment {
+                    color: #5e5e5e;
+                }
+
+                #copyright {
+                    color: #5e5e5e;
+                    margin: 28px 0 4px 0;
+                }
+
+                #address {
+                    color: #5e5e5e;
+                    margin-top: 4px;
+                }
+            </style>
+        </head>
+        <body>
+            <div id="main">
+                <img id="hero-img" src="cid:GeoDealsLogo7.png" width="210">
+                <h1>Verify your email address </h1>
+                <p id="message">' . $firstName . ', please confirm that you want to use this as your GeoDeals account email address. Once it\'s done you\'ll be able to start saving! </p>
+                <a id="button" href="' . $link . '"><b>Verify my email </b></a>
+                <p id="bottom-comment">If you did not sign up for GeoDeals please ignore this email. </p>
+            </div>
+            <div>
+                <p id="copyright">&copy; 2017 GeoDeals. All rights reserved. </p>
+                <p id="address">GeoDeals, 3140 Dyer St #2409 Dallas, TX 75205 </p>
+                <img id="bottom-img" src="cid:GeoDealDude.png" width="160">
+            </div>
+        </body>
+    </html>';
+
+    return $message;
+}
+
+function getVerifiedResponse() {
+    $html = '
+    <html>
+        <head>
+            <style>
+                * {
+                    font-family: Arial, Helvetica, sans-serif;
+                }
+
+                body {
+                    background-color: #e8e8e8;
+                }
+
+                #main {
+                    display: block;
+                    margin: auto;
+                    padding-bottom: 15px;
+                    width: 620px;
+                    background-color: white;
+                    border-radius: 3px;
+                    box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.2), 0 1px 5px 0 rgba(0,0,0,0.12);
+                    /* Makes hero image margin-top and center work */
+                    overflow: hidden;
+                }
+
+                #hero-img {
+                    display: block;
+                    margin-left: auto;
+                    margin-right: auto;
+                    margin-top: 25px;
+                }
+
+                #bottom-img {
+                    margin-top: 14px;
+                }
+
+                h1 {
+                    color: black;
+                    margin: 36px 0 24px 0;
+                    padding: 0 28px;
+                }
+
+                .message {
+                    color: #5e5e5e;
+                    font-size: 17px;
+                    padding: 0 28px;
+                }
+
+                #greeting {
+                    margin-bottom: 2px;
+                }
+
+                #signature {
+                    margin: 0;
+                }
+
+                #button {
+                    display: block;
+                    background: #039be5;
+                    color: white;
+                    height: 58px;
+                    line-height: 58px;
+                    width: 90%;
+                    font-size: 16px;
+                    text-align: center;
+                    text-decoration: none;
+                    margin: 34px auto;
+                    padding: auto 0;
+                    border: 0;
+                    border-radius: 3px;
+                    box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.2), 0 1px 5px 0 rgba(0,0,0,0.12);
+                }
+
+                #bottom {
+                    text-align: center;
+                }
+
+                #copyright {
+                    color: #5e5e5e;
+                    margin: 28px 0 4px 0;
+                    font-size: 14px;
+                }
+
+                #address {
+                    color: #5e5e5e;
+                    margin-top: 4px;
+                    font-size: 14px;
+                }
+            </style>
+        </head>
+        <body>
+            <div id="main">
+                <img id="hero-img" src="/slim-app/public/GeoDealsLogo7.png" width="210">
+                <h1>Your email address has been verified</h1>
+                <p class="message">Thank you, your account has been activated and you\'re now ready to begin using GeoDeals. Happy saving! </p>
+                <p class="message" id="greeting">Sincerely, </p>
+                <p class="message" id="signature">The GeoDeals Team </p>
+                <a id="button" href="http://dealsinthe.us"><b>Go To GeoDeals</b></a>
+            </div>
+            <div id="bottom">
+                <p id="copyright">&copy; 2017 GeoDeals. All rights reserved. </p>
+                <p id="address">GeoDeals, 3140 Dyer St #2409 Dallas, TX 75205 </p>
+                <img id="bottom-img" src="/slim-app/public/GeoDealDude.png" width="160">
+            </div>
+        </body>
+    </html>';
+
+    return $html;
+}
+
+// Get email content as text without html or css
+function getVerifyEmailAsText($firstName, $token) {
+    $withHtml = getVerifyEmail($firstName, $token);
+    $withoutHead = substr($withHtml, strpos($withHtml, '</head>'));
+    $withoutTags = strip_tags($withoutHead);
+    return $withoutTags;
+}
+
+// Send verification email with link to verify email
+function sendVerifyEmail($toAddress, $firstName, $token) {
+    # First, instantiate the SDK with your API credentials
+    $mgClient = new Mailgun('key-547d6d3ea18bc2442ae114c6d3506c7a');
+
+    $domain = 'mg.dealsinthe.us';
+
+    # Now, compose and send your message.
+    $result = $mgClient->sendMessage($domain, array(
+        'from'    => 'donotreply@dealsinthe.us', 
+        'to'      => $toAddress,
+        'subject' => 'Verify your email for GeoDeals',
+        'text'    => getVerifyEmailAsText($firstName, $token),
+        'html'    => getVerifyEmail($firstName, $token)
+    ), array(
+        'inline' => array('./GeoDealDude.png', './GeoDealsLogo7.png')
+    ));
+
+    return $result;
 }
 
 // Routes
+// Verify email
+$app->get('/api/verify-email/[{token}]', function ($request, $response, $args) {
+
+    // Log http request
+    logRequest($request, $this);
+
+    $sql = "UPDATE users
+            SET verified = 1
+            WHERE user_id = (
+                SELECT user_id
+                FROM tokens
+                WHERE token = :token
+            )";
+    $sth = $this->db->prepare($sql);
+    $sth->bindParam("token", $args['token']);
+    $sth->execute();
+
+    // Return HTML confirmation page with link to GeoDeals
+    $body = $response->getBody();
+    $body->write(getVerifiedResponse());
+
+    return $this->response->getBody();
+});
 $app->get('/api/myip', function ($request, $response, $args) {
 
     $jwt = $request->getHeaders();
@@ -171,8 +430,8 @@ $app->get('/api/myip', function ($request, $response, $args) {
 // Change Password
 $app->post('/api/password', function ($request, $response) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -184,13 +443,9 @@ $app->post('/api/password', function ($request, $response) {
     $sth->bindParam("new_password", $input['new_password']);
     $sth->bindParam("old_password", $input['old_password']);
     $sth->bindParam("email", $input['email']);
-    
-    if($sth->execute())
-        $result = "Success";
-    else
-        $result = "Failure";
+    $sth->execute();
 
-    return $this->response->withJson(array("result" => $result));
+    return $this->response->withJson(array("rows affected" => $sth->rowCount()));
 });
 
 // Sign In
@@ -285,8 +540,8 @@ $app->post('/api/signin', function (Request $request, Response $response) {
 // Register
 $app->post('/api/profile', function ($request, $response, $args) {
     
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -314,13 +569,18 @@ $app->post('/api/profile', function ($request, $response, $args) {
     $sth->bindParam("now_date", $currentDateTime);
     $sth->execute();
 
-    $outputSql = "SELECT user_id 
+    $outputSql = "SELECT user_id, token
                   FROM users 
-                  ORDER BY creation_date DESC
+                  NATURAL JOIN tokens
+                  ORDER BY users.creation_date DESC
                   LIMIT 1";
     $output = $this->db->prepare($outputSql);
     $output->execute();
-    $user_id = $output->fetchObject()->user_id;
+    $result = $output->fetchObject();
+    $user_id = $result->user_id;
+    $token = $result->token;
+
+    $email = sendVerifyEmail($input['email'], $input['first_name'], $token);
 
     $jwt = generateToken($input['username'], $user_id, $this);
 
@@ -329,20 +589,22 @@ $app->post('/api/profile', function ($request, $response, $args) {
         $return = array(
             'token' => $jwt,
             'creation_date' => $currentDateTime,
-            'user_id' => $user_id
+            'user_id' => $user_id,
+            'email_response' => $email
         );
     }
     else{
         $return = '{"error":{"text": "Error during token generation"}}';
     }
 
+
     return $this->response->withJson($return);
 });
 // Update Profile
 $app->put('/api/profile/[{old_username}]', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -384,8 +646,8 @@ $app->put('/api/profile/[{old_username}]', function ($request, $response, $args)
 // Get Profile
 $app->get('/api/profile/[{username}]', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     // Changed the status to expired (status_id = 3) for all deals that are past their expiration_date
     $expired = "UPDATE deals d1 
@@ -416,8 +678,8 @@ $app->get('/api/profile/[{username}]', function ($request, $response, $args) {
 //Delete profile
 $app->delete('/api/profile', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -489,8 +751,8 @@ $app->post('/api/newdeal', function ($request, $response, $args) {
 //Delete deal
 $app->delete('/api/deal', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -505,8 +767,8 @@ $app->delete('/api/deal', function ($request, $response, $args) {
 // Vote
 $app->post('/api/vote', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     // Get current vote for user on specific deal
     $input = $request->getParsedBody();
@@ -559,8 +821,8 @@ $app->post('/api/vote', function ($request, $response, $args) {
 // Get vote count
 $app->get('/api/votes/[{deal_id}]', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     // Get number of upvotes
     $sth = $this->db->prepare("SELECT COUNT(vote_id) AS upvotes
@@ -587,8 +849,8 @@ $app->get('/api/votes/[{deal_id}]', function ($request, $response, $args) {
 // Flag
 $app->post('/api/flag', function ($request, $response, $args) {
     
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -627,8 +889,8 @@ $app->post('/api/flag', function ($request, $response, $args) {
 // Get flag reasons
 $app->get('/api/flags', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
     
     $sql = "SELECT reason
             FROM reasons";
@@ -641,8 +903,8 @@ $app->get('/api/flags', function ($request, $response, $args) {
 // Post comment
 $app->post('/api/comment', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -674,8 +936,8 @@ $app->post('/api/comment', function ($request, $response, $args) {
 // PUT for updating comment
 $app->put('/api/comment', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -702,8 +964,8 @@ $app->put('/api/comment', function ($request, $response, $args) {
 //Get comments
 $app->get('/api/comments/[{deal_id}]', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $sth = $this->db->prepare("SELECT username, comment, posted_date, comments.updated_date
                                FROM comments 
@@ -721,8 +983,8 @@ $app->get('/api/comments/[{deal_id}]', function ($request, $response, $args) {
 //Delete comment
 $app->delete('/api/comment', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -737,8 +999,8 @@ $app->delete('/api/comment', function ($request, $response, $args) {
 //Get statuses
 $app->get('/api/statuses', function ($request, $response, $args) {
 
-    // Log http request, uses temporary sample user_id of 1
-    logRequest(1, $this);
+    // Log http request
+    logRequest($request, $this);
 
     $sth = $this->db->prepare("SELECT *
                                FROM statuses");
