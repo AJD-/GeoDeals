@@ -5,6 +5,9 @@ use \Psr\Http\Message\ResponseInterface as Response;
 use Mailgun\Mailgun;
 use \Firebase\JWT\JWT;
 
+// Enable or disable logging of http requests
+$enableLogging = false;
+
 // Return the client info from the http request header
 function getHeaderInfo() {
     $ip_address = $_SERVER['REMOTE_ADDR'];
@@ -40,6 +43,10 @@ function getEndpointFromRoute($unformatted) {
 
 // Log http requests in the 'requests' table
 function logRequest($_request, $_this) {
+
+    // Only log if logging is turn on
+    if(!$enableLogging) return;
+
     // Get user_id from jwt in authorization header
     $key = "your_secret_key";
     $jwt = $_request->getHeaders();
@@ -414,6 +421,8 @@ $app->get('/api/verify-email/[{token}]', function ($request, $response, $args) {
 
     return $this->response->getBody();
 });
+
+// Get header information
 $app->get('/api/myip', function ($request, $response, $args) {
 
     $jwt = $request->getHeaders();
@@ -539,9 +548,6 @@ $app->post('/api/signin', function (Request $request, Response $response) {
 
 // Register
 $app->post('/api/profile', function ($request, $response, $args) {
-    
-    // Log http request
-    logRequest($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -569,20 +575,18 @@ $app->post('/api/profile', function ($request, $response, $args) {
     $sth->bindParam("now_date", $currentDateTime);
     $sth->execute();
 
-    $outputSql = "SELECT user_id, token
+    $outputSql = "SELECT user_id
                   FROM users 
-                  NATURAL JOIN tokens
-                  ORDER BY users.creation_date DESC
+                  ORDER BY creation_date DESC
                   LIMIT 1";
     $output = $this->db->prepare($outputSql);
     $output->execute();
     $result = $output->fetchObject();
     $user_id = $result->user_id;
-    $token = $result->token;
-
-    $email = sendVerifyEmail($input['email'], $input['first_name'], $token);
 
     $jwt = generateToken($input['username'], $user_id, $this);
+
+    $email = sendVerifyEmail($input['email'], $input['first_name'], $jwt);
 
     if($jwt != null)
     {
@@ -596,7 +600,6 @@ $app->post('/api/profile', function ($request, $response, $args) {
     else{
         $return = '{"error":{"text": "Error during token generation"}}';
     }
-
 
     return $this->response->withJson($return);
 });
