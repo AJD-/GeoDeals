@@ -137,15 +137,15 @@ function generateToken($user, $user_id, $_this){
         echo json_encode($e);
     }
 
-    $sql = "INSERT INTO tokens (user_id, token, date_created, date_expiration)
-        VALUES (:user_id, :token, :date_created, :date_expiration)";
+    $sql = "INSERT INTO tokens (user_id, token, created_date, expiration_date)
+        VALUES (:user_id, :token, :created_date, :expiration_date)";
     try{
         $db = $_this->db;
         $stmt = $db->prepare($sql);
         $stmt->bindParam("user_id", $user_id);
         $stmt->bindParam("token", $jwt);
-        $stmt->bindParam("date_created", $payload['iat']);
-        $stmt->bindParam("date_expiration", $payload['exp']);
+        $stmt->bindParam("created_date", $payload['iat']);
+        $stmt->bindParam("expiration_date", $payload['exp']);
         $stmt->execute();
         $db = null;
         return $jwt;
@@ -242,7 +242,7 @@ $app->post('/api/signin', function (Request $request, Response $response) {
 
         // Find a corresponding token.
         $sql = "SELECT * FROM tokens
-            WHERE user_id = :user_id AND date_expiration >" . time();
+            WHERE user_id = :user_id AND expiration_date >" . time();
 
         $token_from_db = false;
         try {
@@ -256,7 +256,7 @@ $app->post('/api/signin', function (Request $request, Response $response) {
             if ($token_from_db) {
                 echo json_encode([
                     "token"      => $token_from_db->token,
-                    "user_login" => $token_from_db->id
+                    "user_login" => $token_from_db->user_id
                 ]);
             }
         } catch (PDOException $e) {
