@@ -350,7 +350,7 @@ function getVerifiedResponse() {
         </head>
         <body>
             <div id="main">
-                <img id="hero-img" src="/slim-app/public/GeoDealsLogo7.png" width="210">
+                <img id="hero-img" src="/GeoDealsLogo7.png" width="210">
                 <h1>Your email address has been verified</h1>
                 <p class="message">Thank you, your account has been activated and you\'re now ready to begin using GeoDeals. Happy saving! </p>
                 <p class="message" id="greeting">Sincerely, </p>
@@ -360,7 +360,7 @@ function getVerifiedResponse() {
             <div id="bottom">
                 <p id="copyright">&copy; 2017 GeoDeals. All rights reserved. </p>
                 <p id="address">GeoDeals, 3140 Dyer St #2409 Dallas, TX 75205 </p>
-                <img id="bottom-img" src="/slim-app/public/GeoDealDude.png" width="160">
+                <img id="bottom-img" src="/GeoDealDude.png" width="160">
             </div>
         </body>
     </html>';
@@ -385,7 +385,7 @@ function sendVerifyEmail($toAddress, $firstName, $token) {
 
     # Now, compose and send your message.
     $result = $mgClient->sendMessage($domain, array(
-        'from'    => 'donotreply@dealsinthe.us', 
+        'from'    => 'GeoDeals@dealsinthe.us', 
         'to'      => $toAddress,
         'subject' => 'Verify your email for GeoDeals',
         'text'    => getVerifyEmailAsText($firstName, $token),
