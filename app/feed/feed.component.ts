@@ -21,7 +21,7 @@ export class FeedComponent {
 	uv : boolean[];
 	dv : boolean[];
 
-	constructor(private dealRepository : DealRepository){
+    constructor(private dealRepository: DealRepository, private voteService: VoteService) {
 		this.title = "GeoDeals";
         this.titleUpdated.emit(this.title);
         this.dv = [];
@@ -43,10 +43,18 @@ export class FeedComponent {
 			if(this.dv[index]){
 				this.downvote(index);
 			}
-			this.deals[index].rating++; //uv: send vote type  1, 0 for dv, 2 for unvote
+            this.deals[index].rating++; //uv: send vote type  1, 0 for dv, 2 for unvote
+            this.vote.deal_id = index;
+            this.vote.vote_type = 1;
+            this.voteService.vote(this.vote)
+                .then(x => console.log("Voted up"));
 			this.uv[index] = true;
 		}else{
-			this.deals[index].rating--;
+            this.deals[index].rating--;
+            this.vote.deal_id = index;
+            this.vote.vote_type = 2;
+            this.voteService.vote(this.vote)
+                .then(x => console.log("Unvoted"));
 			this.uv[index] = false;
 		}
 	}
@@ -62,10 +70,18 @@ export class FeedComponent {
 			if(this.uv[index]){
 				this.upvote(index);
 			}
-			this.deals[index].rating--;
+            this.deals[index].rating--;
+            this.vote.deal_id = index;
+            this.vote.vote_type = 0;
+            this.voteService.vote(this.vote)
+                .then(x => console.log("Voted down"));
 			this.dv[index] = true;
 		}else{
-			this.deals[index].rating++;
+            this.deals[index].rating++;
+            this.vote.deal_id = index;
+            this.vote.vote_type = 2;
+            this.voteService.vote(this.vote)
+                .then(x => console.log("Unvoted"));
 			this.dv[index] = false;
 		}
 	}
