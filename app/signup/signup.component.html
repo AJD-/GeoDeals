@@ -1,0 +1,59 @@
+<div class="col-md-12 text-center">
+	<form name="signupForm" #signupForm="ngForm" class="form-horizontal" (ngSubmit)="submit()">
+	  <div class="form-group">
+		<label for="username" class="col-sm-2 control-label">Username:</label>
+		<div class="col-sm-10">
+		  <input type="text" [ngClass]="{'.has-error': signup_username.errors && signup_username.touched}" [(ngModel)]="user.username" #signup_username="ngModel" class="form-control" name="username" id="username" placeholder="Username" required>
+		</div>
+	  </div>
+	  <div class="form-group">
+		<label for="email" class="col-sm-2 control-label">Email:</label>
+		<div class="col-sm-10">
+		  <input type="email" [ngClass]="{'.has-error': signup_email.errors && signup_email.touched}" [(ngModel)]="user.email" #signup_email="ngModel" class="form-control" name="email" id="email" placeholder="Email" required>
+		</div>
+	  </div>
+	  <div class="form-group">
+		<label for="inputPhone" class="col-sm-2 control-label">Phone #:</label>
+		<div class="col-sm-10">
+		  <input type="tel" [ngClass]="{'.has-error': signup_phone.errors && signup_phone.touched}" [(ngModel)]="user.phone" #signup_phone="ngModel" pattern="\d{3}([.-]{1})?\d{3}\1\d{4}" class="form-control" name="phone" id="inputPhone" placeholder="Phone #" required>
+		</div>
+	  </div>
+      <div class="form-group">
+          <label for="first_name" class="col-sm-2 control-label">First Name:</label>
+          <div class="col-sm-10">
+              <input type="text" [ngClass]="{'.has-error': signup_firstname.errors && signup_firstname.touched}" [(ngModel)]="user.first_name" #signup_firstname="ngModel" class="form-control" name="first_name" id="first_name" placeholder="First Name, eg: John" required>
+          </div>
+      </div>
+      <div class="form-group">
+          <label for="last_name" class="col-sm-2 control-label">Last Name:</label>
+          <div class="col-sm-10">
+              <input type="text" [ngClass]="{'.has-error': signup_lastname.errors && signup_lastname.touched}" [(ngModel)]="user.last_name" #signup_lastname="ngModel" class="form-control" name="last_name" id="last_name" placeholder="Last Name, eg: Smith" required>
+          </div>
+      </div>
+      <div class="form-group">
+          <label for="birthday" class="col-sm-2 control-label">Birthday:</label>
+          <div class="col-sm-10">
+              <input type="date" [ngClass]="{'.has-error': signup_birthday.errors && signup_birthday.touched}" [(ngModel)]="user.birth_date" #signup_birthday="ngModel" class="form-control" name="birthday" id="birthday" placeholder="Date of Birth" required>
+          </div>
+      </div>
+	  <div class="form-group">
+		<label for="password" class="col-sm-2 control-label">Password:</label>
+		<div class="col-sm-10">
+		  <input type="password" [ngClass]="{'.has-error': signup_password.errors && signup_password.touched}" [(ngModel)]="user.password" #signup_password="ngModel" class="form-control" name="password" id="password" placeholder="Password" required>
+		</div>
+	  </div>
+	  <div class="form-group">
+		<label for="confirmPassword" class="col-sm-2 control-label">Confirm:</label>
+		<div class="col-sm-10">
+		  <input type="password" [(ngModel)]="user.confirm_password" #signup_confirm_password="ngModel" class="form-control" name="confirmPassword" id="confirmPassword" placeholder="Confirm Password" required>
+		</div>
+	  </div>
+	  <div class="form-group">
+		<div class="col-sm-offset-2 col-sm-10">
+		  <button type="submit" class="btn btn-primary btn-block">Sign Up</button>
+		</div>
+	  </div>
+	</form>
+	<hr/>
+	<a routerLink="/login" class="redirectHint">Already have an account? Login Here!</a>
+</div>
