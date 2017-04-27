@@ -19,7 +19,7 @@ export class SignupComponent {
                 private route: ActivatedRoute,
                 private userRepository: UserRepository) {
 		this.title = "Sign Up";
-        this.titleUpdated.emit(this.title);
+        this.titleUpdated.emit(this.title); 
     }
     submit() {
         if(!this.user.email_marketing)
