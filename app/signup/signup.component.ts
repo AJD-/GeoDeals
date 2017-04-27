@@ -23,7 +23,9 @@ export class SignupComponent {
     }
     submit() {
         this.userRepository.add(this.user)
-            .then(x => this.goToFeed(`User registered`));
+            .then(x => {
+                this.goToFeed(`User registered`);
+            });
     }
     goToFeed(message) {
         this.router.navigateByUrl('feed')
