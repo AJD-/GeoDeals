@@ -397,6 +397,22 @@ function sendVerifyEmail($toAddress, $firstName, $token) {
     return $result;
 }
 
+function getLocation($ip_address) {
+    $url = "http://ip-api.com/json/" . (string) $ip_address;
+    $response = file_get_contents($url);
+    //return $url;
+    return json_decode($response);
+}
+
+function getZipsInRadius($zip, $radius) { 
+    // url = http://www.zipcodeapi.com/rest/Jd53ArqkcWlc2CneAby3N2ccktlgYSUH60KHrb2D8oPa0dpAoXEc0QolkJCiCx0I/radius.json/75218/3/mile
+    $api_key = "Jd53ArqkcWlc2CneAby3N2ccktlgYSUH60KHrb2D8oPa0dpAoXEc0QolkJCiCx0I";
+    $url = "http://www.zipcodeapi.com/rest/" . $api_key . "/radius.json/" . $zip . "/" . $radius . "/mile";
+    $response = file_get_contents($url);
+    //return $url;
+    return json_decode($response);
+}
+
 // Routes
 // Verify email
 $app->get('/api/verify-email/[{token}]', function ($request, $response, $args) {
@@ -433,7 +449,6 @@ $app->get('/api/myip', function ($request, $response, $args) {
     else{
         authError();
     }
-
 });
 
 // Change Password
@@ -617,6 +632,7 @@ $app->post('/api/profile', function ($request, $response, $args) {
 
     return $this->response->withJson($return);
 });
+
 // Update Profile
 $app->put('/api/profile/[{old_username}]', function ($request, $response, $args) {
 
@@ -660,6 +676,7 @@ $app->put('/api/profile/[{old_username}]', function ($request, $response, $args)
     $input += ["updated_date" => $currentDateTime];
     return $this->response->withJson($input);
 });
+
 // Get Profile
 $app->get('/api/profile/[{username}]', function ($request, $response, $args) {
 
@@ -692,6 +709,7 @@ $app->get('/api/profile/[{username}]', function ($request, $response, $args) {
     $user = $sth->fetchObject();
     return $this->response->withJson($user);
 });
+
 //Delete profile
 $app->delete('/api/profile', function ($request, $response, $args) {
 
@@ -707,8 +725,25 @@ $app->delete('/api/profile', function ($request, $response, $args) {
 
     return $this->response->withJson(array("rows affected" => $sth->rowCount()));
 });
+
 // Deals
 $app->get('/api/deals/[{location}]', function ($request, $response, $args) {
+
+    // Grab IP address
+    $ip_address = $_SERVER['REMOTE_ADDR'];
+
+    // Get zip based on IP address
+    $location_info = getLocation($ip_address);
+    $zip = $location_info->zip;
+
+    // Get zips within 10 mile radius
+    $radius = 3;
+    //$zips_in_radius = getZipsInRadius($zip,$radius)->zip_codes;
+    $zip_arr = array();
+    $zip_arr = array("75218","75217","75216","75215","75214","75205");
+
+
+    //
     $obj = array( 'deals' => [
     array(
     "deal_id"=> 1,
@@ -733,10 +768,12 @@ $app->get('/api/deals/[{location}]', function ($request, $response, $args) {
     "store"=> "Khols",
     "description"=> "I got four pants for free!",
         "category"=> "Clothing"
-    )]
+    )],
+    "zips_in_radius" => $zip_arr,
     );
     return $this->response->withJson($obj);
 });
+
 // Get specific deal
 $app->get('/api/deal/[{deal_id}]', function ($request, $response, $args) {
     $obj = array(
@@ -749,6 +786,7 @@ $app->get('/api/deal/[{deal_id}]', function ($request, $response, $args) {
     );
     return $this->response->withJson($obj);
 });
+
 // Add New Deal
 $app->post('/api/newdeal', function ($request, $response, $args) {
     $obj = array(
@@ -765,6 +803,7 @@ $app->post('/api/newdeal', function ($request, $response, $args) {
     );
     return $this->response->withJson($obj);
 });
+
 //Delete deal
 $app->delete('/api/deal', function ($request, $response, $args) {
 
@@ -781,6 +820,7 @@ $app->delete('/api/deal', function ($request, $response, $args) {
 
     return $this->response->withJson(array("rows affected" => $sth->rowCount()));
 });
+
 // Vote
 $app->post('/api/vote', function ($request, $response, $args) {
 
@@ -835,6 +875,7 @@ $app->post('/api/vote', function ($request, $response, $args) {
 
     return $this->response->withJson(array("rows affected" => $sth->rowCount()));
 });
+
 // Get vote count
 $app->get('/api/votes/[{deal_id}]', function ($request, $response, $args) {
 
@@ -863,6 +904,7 @@ $app->get('/api/votes/[{deal_id}]', function ($request, $response, $args) {
     $difference = $upvotes-$downvotes;
     return $this->response->withJson(array("votes" => $difference));
 });
+
 // Flag
 $app->post('/api/flag', function ($request, $response, $args) {
     
