@@ -22,6 +22,8 @@ export class SignupComponent {
         this.titleUpdated.emit(this.title);
     }
     submit() {
+        if(!this.user.email_marketing)
+            this.user.email_marketing = 0;
         this.userRepository.add(this.user)
             .then(x => {
                 this.goToFeed(`User registered`);
