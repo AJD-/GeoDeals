@@ -6,6 +6,7 @@ import 'rxjs/add/operator/toPromise';
 @Injectable()
 export class UserRepository {
     private _apiUrl = 'api/profile';
+    private _signInUrl = 'api/signin';
 
 	constructor(private http: Http) {}
 
@@ -46,5 +47,13 @@ export class UserRepository {
             .delete(`${this._apiUrl}/${user.username}`)
 			.toPromise()
 			.catch(x => x.message);
-	}
+    }
+
+    signin(email: string, password: string): Promise<User> {
+        return this.http
+            .post(this._signInUrl, { "email": email, "password": password })
+            .toPromise()
+            .then(x => x.json().data as User)
+            .catch(x => x.message);
+    }
 }
