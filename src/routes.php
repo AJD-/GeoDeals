@@ -385,7 +385,7 @@ function sendVerifyEmail($toAddress, $firstName, $token) {
 
     # Now, compose and send your message.
     $result = $mgClient->sendMessage($domain, array(
-        'from'    => 'GeoDeals@dealsinthe.us', 
+        'from'    => 'GeoDeals <GeoDeals@dealsinthe.us>', 
         'to'      => $toAddress,
         'subject' => 'Verify your email for GeoDeals',
         'text'    => getVerifyEmailAsText($firstName, $token),
@@ -787,14 +787,20 @@ $app->post('/api/vote', function ($request, $response, $args) {
     // Log http request
     logRequest($request, $this);
 
+    // Get user_id from jwt in authorization header
+    $key = "your_secret_key";
+    $jwt = $request->getHeaders();
+    $decoded = JWT::decode($jwt['HTTP_AUTHORIZATION'][0], $key, array('HS256'));
+    $user_id = $decoded->context->user->user_id;
+
     // Get current vote for user on specific deal
     $input = $request->getParsedBody();
     $search = "SELECT vote_type
                FROM votes 
-               WHERE user_id = :user_id 
+               WHERE user_id = :user_id
                AND deal_id = :deal_id";
     $sth = $this->db->prepare($search);
-    $sth->bindParam("user_id", $input['user_id']);
+    $sth->bindParam("user_id", $user_id);
     $sth->bindParam("deal_id", $input['deal_id']);
     $success = $sth->execute();
     $vote = $sth->fetchObject();
