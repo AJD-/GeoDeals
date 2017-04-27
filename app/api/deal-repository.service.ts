@@ -31,7 +31,10 @@ export class DealRepository {
         return this.http
             .get(this._testApiUrl)
             .toPromise()
-            .then(x => x.json().data as Deal[])
+            .then(x => {
+                let body = x.json();
+                return (body.data || body) as Deal[];
+            })
             .catch(x => x.message);
     }
 
