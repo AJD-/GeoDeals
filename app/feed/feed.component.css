@@ -24,3 +24,18 @@
 	height:200px;
 	width:200px;
 }
+.addbtn {
+    position: fixed;
+    left: 80vw;
+    top: 80vh;
+    border-radius: 100px;
+    text-align: center;
+    padding: 20px;
+    width: 100px;
+    height: 100px;
+}
+.addbtn > p{
+    margin-top: -40px;
+    font-size: 100px;
+    color: white;
+}
