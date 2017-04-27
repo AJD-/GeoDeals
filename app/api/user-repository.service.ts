@@ -5,7 +5,7 @@ import 'rxjs/add/operator/toPromise';
 
 @Injectable()
 export class UserRepository {
-    private _apiUrl = 'http://dealsinthe.us/api/profile';
+    private _apiUrl = 'api/profile';
 
 	constructor(private http: Http) {}
 
