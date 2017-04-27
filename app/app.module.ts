@@ -14,6 +14,7 @@ import { LoginComponent } from './login/login.component';
 import { FeedComponent } from './feed/feed.component';
 import { DealRepository } from './api/deal-repository.service';
 import { DealModule } from './deal/deal.module';
+import { UserRepository } from './api/user-repository.service';
 
 
 @NgModule({
@@ -43,7 +44,10 @@ import { DealModule } from './deal/deal.module';
       RouterModule
 ],
   declarations: [ AppComponent, HomeComponent, SignupComponent, LoginComponent, FeedComponent ],
-  providers: [ DealRepository ],
+  providers: [
+      DealRepository,
+      UserRepository
+  ],
   bootstrap:    [ AppComponent ]
 })
 
