@@ -1,7 +1,8 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { User } from '../api/user';
-
+import { UserRepository } from '../api/user-repository.service';
+import { Router, ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'signup',
@@ -14,11 +15,18 @@ export class SignupComponent {
     title: string;
     user: any = {};
 
-	constructor(){
+    constructor(private router: Router,
+                private route: ActivatedRoute,
+                private userRepository: UserRepository) {
 		this.title = "Sign Up";
         this.titleUpdated.emit(this.title);
     }
     submit() {
-
+        this.userRepository.add(this.user)
+            .then(x => this.goToFeed(`User registered`));
+    }
+    goToFeed(message) {
+        this.router.navigateByUrl('feed')
+            .then(() => console.log(message));
     }
 }
