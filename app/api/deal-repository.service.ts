@@ -7,6 +7,7 @@ import { Deal } from './deal';
 @Injectable()
 export class DealRepository {
     private _apiUrl = 'api/deals';
+    private _testApiUrl = 'http://54.70.252.84/api/deals/test';
 
 	private _deals: Deal[];
 
@@ -28,7 +29,7 @@ export class DealRepository {
 
     public list(): Promise<Deal[]> {
         return this.http
-            .get(this._apiUrl)
+            .get(this._testApiUrl)
             .toPromise()
             .then(x => x.json().data as Deal[])
             .catch(x => x.message);
