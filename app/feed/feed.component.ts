@@ -1,7 +1,10 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 
 import { DealRepository } from '../api/deal-repository.service';
+import { VoteService } from '../api/vote.service';
 import { Deal } from '../api/deal';
+import { Vote } from '../api/vote';
+import { User } from '../api/user';
 
 
 @Component({
@@ -13,20 +16,27 @@ import { Deal } from '../api/deal';
 export class FeedComponent { 
 	@Output() titleUpdated : EventEmitter<string> = new EventEmitter();
 	title : string;
-	deals : Deal[];
+    deals: Deal[];
+    vote: Vote;
 	uv : boolean[];
 	dv : boolean[];
 
 	constructor(private dealRepository : DealRepository){
 		this.title = "GeoDeals";
-		this.titleUpdated.emit(this.title);
-		this.deals = this.dealRepository.list();
-		this.dv = [];
-		this.uv = [];
-		for(let x = 0; x < this.deals.length; x++){
-			this.dv.push(false);
-			this.uv.push(false);
-		}
+        this.titleUpdated.emit(this.title);
+        this.dv = [];
+        this.uv = [];
+        dealRepository.list()
+            .then(x => {
+                console.log("Received " + x);
+                if (x) {
+                    this.deals = x;
+                    for (let x = 0; x < this.deals.length; x++) {
+                        this.dv.push(false);
+                        this.uv.push(false);
+                    }
+                }
+            });		
 	}
 	upvote(index : number){
 		if(!this.uv[index]){

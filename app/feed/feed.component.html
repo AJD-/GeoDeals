@@ -1,11 +1,11 @@
 <div class="row alert alert-danger text-center" *ngIf="!deals">
-	<h1>There doesn't appear to be any deals in your area</h1>	
+	<h1>There doesn't appear to be any deals in your area :(</h1>	
 </div>
 <div class="row" *ngFor="let deal of deals; let i = index">
 	<div class="media thumbnail">
 		<div class="pull-left">
-			<a href="#"><!-- Should be a link to the actual deal -->
-				<img class="media-object deal-icon" [src]="deal.imagePath" [alt]="deal.title"><!-- Should be getting data from the deal -->
+			<a [routerLink]="['deal/',deal.id]">
+				<img class="media-object deal-icon" [src]="deal.imagePath" onError="this.src='/img/default-thumbnail.jpg';" [alt]="deal.title"><!-- Should be getting data from the deal -->
 			</a>
 		</div>
 		<h1 class="media-heading col-xs-6">{{ deal.title }}</h1>
