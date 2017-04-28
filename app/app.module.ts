@@ -15,6 +15,7 @@ import { FeedComponent } from './feed/feed.component';
 import { DealRepository } from './api/deal-repository.service';
 import { DealModule } from './deal/deal.module';
 import { UserRepository } from './api/user-repository.service';
+import { VoteService } from './api/vote.service';
 
 
 @NgModule({
@@ -46,7 +47,8 @@ import { UserRepository } from './api/user-repository.service';
   declarations: [ AppComponent, HomeComponent, SignupComponent, LoginComponent, FeedComponent ],
   providers: [
       DealRepository,
-      UserRepository
+      UserRepository,
+      VoteService
   ],
   bootstrap:    [ AppComponent ]
 })

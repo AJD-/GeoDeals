@@ -19,12 +19,17 @@ export class SignupComponent {
                 private route: ActivatedRoute,
                 private userRepository: UserRepository) {
 		this.title = "Sign Up";
-        this.titleUpdated.emit(this.title);
+        this.titleUpdated.emit(this.title); 
     }
     submit() {
+        if(!this.user.email_marketing)
+            this.user.email_marketing = 0;
         this.userRepository.add(this.user)
-            .then(x => this.goToFeed(`User registered`));
+            .then(x => {
+                this.goToFeed(`User registered`);
+            });
     }
+
     goToFeed(message) {
         this.router.navigateByUrl('feed')
             .then(() => console.log(message));
