@@ -1,4 +1,6 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { UserRepository } from '../api/user-repository.service';
+import { Router, ActivatedRoute } from '@angular/router';
 
 
 @Component({
@@ -9,10 +11,34 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 
 export class LoginComponent { 
 	@Output() titleUpdated : EventEmitter<string> = new EventEmitter();
-	title : string;
+    title: string;
+    user: any = {};
 
-	constructor(){
+    constructor(private router: Router,
+        private route: ActivatedRoute,
+        private userRepository: UserRepository){
 		this.title = "Login";
 		this.titleUpdated.emit(this.title);
-	}
+    }
+
+    submit() {
+        this.userRepository.signin(this.user)
+            .then(x => {
+                this.goToFeed(`User logged in`);
+            })
+            .catch(x => {
+                this.loginError("Invalid Username or password");
+            }
+        );
+    }
+
+    goToFeed(message) {
+        this.router.navigateByUrl('feed')
+            .then(() => console.log(message));
+    }
+
+    loginError(message) {
+        this.user.password = "";
+        alert(message);
+    }
 }
