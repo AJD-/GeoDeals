@@ -1,4 +1,6 @@
 <?php
+// Magically fixes everything -- don't remove this line
+header('Access-Control-Allow-Origin: *');
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
@@ -350,7 +352,7 @@ function getVerifiedResponse() {
         </head>
         <body>
             <div id="main">
-                <img id="hero-img" src="/GeoDealsLogo7.png" width="210">
+                <img id="hero-img" src="/slim-app/public/GeoDealsLogo7.png" width="210">
                 <h1>Your email address has been verified</h1>
                 <p class="message">Thank you, your account has been activated and you\'re now ready to begin using GeoDeals. Happy saving! </p>
                 <p class="message" id="greeting">Sincerely, </p>
@@ -360,7 +362,7 @@ function getVerifiedResponse() {
             <div id="bottom">
                 <p id="copyright">&copy; 2017 GeoDeals. All rights reserved. </p>
                 <p id="address">GeoDeals, 3140 Dyer St #2409 Dallas, TX 75205 </p>
-                <img id="bottom-img" src="/GeoDealDude.png" width="160">
+                <img id="bottom-img" src="/slim-app/public/GeoDealDude.png" width="160">
             </div>
         </body>
     </html>';
@@ -383,9 +385,17 @@ function sendVerifyEmail($toAddress, $firstName, $token) {
 
     $domain = 'mg.dealsinthe.us';
 
+    //$this->view->render($email_html, 'home.twig');
+
+    // $app->render('the-template.php', array(
+    //     'name' => 'John',
+    //     'email' => '[email blocked]',
+    //     'active' => true
+    // ));
+
     # Now, compose and send your message.
     $result = $mgClient->sendMessage($domain, array(
-        'from'    => 'GeoDeals@dealsinthe.us', 
+        'from'    => 'donotreply@dealsinthe.us', 
         'to'      => $toAddress,
         'subject' => 'Verify your email for GeoDeals',
         'text'    => getVerifyEmailAsText($firstName, $token),
@@ -414,6 +424,11 @@ function getZipsInRadius($zip, $radius) {
 }
 
 // Routes
+// Default
+$app->get('/', function ($request, $response){
+    return $this->view->render($response, 'home.twig');
+});
+
 // Verify email
 $app->get('/api/verify-email/[{token}]', function ($request, $response, $args) {
 
@@ -431,11 +446,7 @@ $app->get('/api/verify-email/[{token}]', function ($request, $response, $args) {
     $sth->bindParam("token", $args['token']);
     $sth->execute();
 
-    // Return HTML confirmation page with link to GeoDeals
-    $body = $response->getBody();
-    $body->write(getVerifiedResponse());
-
-    return $this->response->getBody();
+    return $this->view->render($response, 'verified_response.twig');
 });
 
 // Get header information
@@ -727,7 +738,9 @@ $app->delete('/api/profile', function ($request, $response, $args) {
 });
 
 // Deals
-$app->get('/api/deals/[{location}]', function ($request, $response, $args) {
+$app->get('/api/deals', function ($request, $response, $args) {
+
+    $data = $request->getParsedBody();
 
     // Grab IP address
     $ip_address = $_SERVER['REMOTE_ADDR'];
@@ -736,12 +749,34 @@ $app->get('/api/deals/[{location}]', function ($request, $response, $args) {
     $location_info = getLocation($ip_address);
     $zip = $location_info->zip;
 
-    // Get zips within 10 mile radius
+    // Get zips within X mile radius
+    //$radius = $data['radius'];
     $radius = 3;
-    //$zips_in_radius = getZipsInRadius($zip,$radius)->zip_codes;
-    $zip_arr = array();
-    $zip_arr = array("75218","75217","75216","75215","75214","75205");
 
+    //$zips_in_radius = getZipsInRadius($zip,$radius)->zip_codes;
+    //$zip_arr = array(75231,75214);
+    $zip_arr = array('75231','75214');
+
+    //$zip_implode = implode(',',$zip_arr);
+    $zip_implode = "(" . implode(',',$zip_arr) . ")";
+    
+    //$find = "SELECT * FROM stores WHERE zip_code IN (:list_of_zips)";
+    $find = "SELECT * FROM stores WHERE zip_code IN $zip_implode";
+    try {
+        $db = $this->db;
+        $stmt = $db->prepare($find);
+        //$stmt->bindParam("list_of_zips", $zip_implode);
+        $stmt->execute();
+        $returned_stores = $stmt->fetchAll();
+        $db = null;
+        $final_stores = null;
+
+        if ($returned_stores) {
+            $final_stores = $returned_stores;
+        }
+    } catch (PDOException $e) {
+        echo '{"error":{"text": "Error during location gathering"}}';
+    }
 
     //
     $obj = array( 'deals' => [
@@ -769,7 +804,9 @@ $app->get('/api/deals/[{location}]', function ($request, $response, $args) {
     "description"=> "I got four pants for free!",
         "category"=> "Clothing"
     )],
-    "zips_in_radius" => $zip_arr,
+    "zips_in_radius" => $zip_implode,
+    "radius"=> $radius,
+    "final_stores" => $returned_stores
     );
     return $this->response->withJson($obj);
 });
