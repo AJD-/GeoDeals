@@ -698,11 +698,17 @@ $app->delete('/api/profile', function ($request, $response, $args) {
     // Log http request
     logRequest($request, $this);
 
+    // Get user_id from jwt in authorization header
+    $key = "your_secret_key";
+    $jwt = $request->getHeaders();
+    $decoded = JWT::decode($jwt['HTTP_AUTHORIZATION'][0], $key, array('HS256'));
+    $user_id = $decoded->context->user->user_id;
+
     $input = $request->getParsedBody();
 
     $sth = $this->db->prepare("DELETE FROM users
                                WHERE user_id = :user_id");
-    $sth->bindParam("user_id", $input['user_id']);
+    $sth->bindParam("user_id", $user_id);
     $sth->execute();
 
     return $this->response->withJson(array("rows affected" => $sth->rowCount()));
@@ -795,6 +801,7 @@ $app->post('/api/vote', function ($request, $response, $args) {
 
     // Get current vote for user on specific deal
     $input = $request->getParsedBody();
+
     $search = "SELECT vote_type
                FROM votes 
                WHERE user_id = :user_id
@@ -817,7 +824,7 @@ $app->post('/api/vote', function ($request, $response, $args) {
                             vote_date = :vote_date";
             $sth = $this->db->prepare($addVote);
             $sth->bindParam("vote_type", $input['vote_type']);
-            $sth->bindParam("user_id", $input['user_id']);
+            $sth->bindParam("user_id", $user_id);
             $sth->bindParam("deal_id", $input['deal_id']);
             $sth->bindParam("vote_date", date('Y-m-d H:i:s'));
             $sth->execute();
@@ -832,7 +839,7 @@ $app->post('/api/vote', function ($request, $response, $args) {
                          AND deal_id = :deal_id";
             $sth = $this->db->prepare($editVote);
             $sth->bindParam("vote_type", $input['vote_type']);
-            $sth->bindParam("user_id", $input['user_id']);
+            $sth->bindParam("user_id", $user_id);
             $sth->bindParam("deal_id", $input['deal_id']);
             $sth->bindParam("vote_date", date('Y-m-d H:i:s'));
             $sth->execute();
@@ -875,6 +882,12 @@ $app->post('/api/flag', function ($request, $response, $args) {
     // Log http request
     logRequest($request, $this);
 
+    // Get user_id from jwt in authorization header
+    $key = "your_secret_key";
+    $jwt = $request->getHeaders();
+    $decoded = JWT::decode($jwt['HTTP_AUTHORIZATION'][0], $key, array('HS256'));
+    $user_id = $decoded->context->user->user_id;
+
     $input = $request->getParsedBody();
 
     $sql = "INSERT INTO reports
@@ -885,7 +898,7 @@ $app->post('/api/flag', function ($request, $response, $args) {
                 updated_date = :updated_date";
     $sth = $this->db->prepare($sql);
     $sth->bindParam("deal_id", $input['deal_id']);
-    $sth->bindParam("user_id", $input['user_id']);
+    $sth->bindParam("user_id", $user_id);
     $sth->bindParam("reason_id", $input['reason_id']);
     $currentDateTime = date('Y-m-d H:i:s');
     $sth->bindParam("report_date", $currentDateTime);
@@ -929,6 +942,12 @@ $app->post('/api/comment', function ($request, $response, $args) {
     // Log http request
     logRequest($request, $this);
 
+    // Get user_id from jwt in authorization header
+    $key = "your_secret_key";
+    $jwt = $request->getHeaders();
+    $decoded = JWT::decode($jwt['HTTP_AUTHORIZATION'][0], $key, array('HS256'));
+    $user_id = $decoded->context->user->user_id;
+
     $input = $request->getParsedBody();
 
     $sql = "INSERT INTO comments 
@@ -939,7 +958,7 @@ $app->post('/api/comment', function ($request, $response, $args) {
                 updated_date = :updated_date";
     $sth = $this->db->prepare($sql);
     $sth->bindParam("deal_id", $input['deal_id']);
-    $sth->bindParam("user_id", $input['user_id']);
+    $sth->bindParam("user_id", $user_id);
     $sth->bindParam("comment", $input['comment']);
     $currentDateTime = date('Y-m-d H:i:s');
     $sth->bindParam("posted_date", $currentDateTime);
