@@ -48,10 +48,7 @@ function logRequest($_request, $_this) {
     if(!$enableLogging) return;
 
     // Get user_id from jwt in authorization header
-    $key = "your_secret_key";
-    $jwt = $_request->getHeaders();
-    $decoded = JWT::decode($jwt['HTTP_AUTHORIZATION'][0], $key, array('HS256'));
-    $user_id = $decoded->context->user->user_id;
+    $user_id = getUserIdFromToken($_request, $_this);
 
     $headerInfo = getHeaderInfo();
     // Get the endpoint_id for the endpoint that is in use
@@ -84,6 +81,17 @@ function logRequest($_request, $_this) {
     $sth->execute();
 }
 
+// Use token from authorization header to get user_id from tokens table
+function getUserIdFromToken($_request, $_this) {
+    $token = $_request->getHeaders()['HTTP_AUTHORIZATION'][0];
+    $getUser = "SELECT user_id
+               FROM tokens
+               WHERE token = :token";
+    $sth = $_this->db->prepare($getUser);
+    $sth->bindParam("token", $token);
+    $sth->execute();
+    return $sth->fetchObject()->user_id;
+}
 
 function isAuthenticated($jwt, $_this){
     // Potentially need to check expiration on successive requests
@@ -498,6 +506,7 @@ $app->post('/api/signin', function (Request $request, Response $response) {
             $u_id = $returned_user->user_id;
             $u_uname = $returned_user->username;
             $hashed_pw = $returned_user->password;
+            $u_verified = $returned_user->verified;
 
             // $my_file = 'authfile.txt';
             // $handle = fopen($my_file, 'w') or die('Cannot open file:  '.$my_file);
@@ -506,7 +515,8 @@ $app->post('/api/signin', function (Request $request, Response $response) {
                 if(password_verify($password, $hashed_pw)){
                     $current_user = array(
                         "user_login" => $u_uname,
-                        "user_id" => $u_id
+                        "user_id" => $u_id,
+                        "user_verified" => $u_verified
                     );
                 }
 
@@ -524,6 +534,8 @@ $app->post('/api/signin', function (Request $request, Response $response) {
 
     if (!isset($current_user)) {
         echo json_encode("No user with that user/password combination");
+    } else if ($current_user['user_verified'] == 0) {
+        echo json_encode("Please verify email before logging in");
     } else {
 
         // Find a corresponding token.
@@ -566,6 +578,24 @@ $app->post('/api/signin', function (Request $request, Response $response) {
             }
         }
     }
+});
+
+// Log out
+$app->post('/api/logout', function ($request, $response, $args) {
+
+    // Log http request
+    logRequest($request, $this);
+
+    // Get user_id from jwt in authorization header
+    $user_id = getUserIdFromToken($request, $this);
+
+    $removeToken = "DELETE FROM tokens 
+                    WHERE user_id = :user_id";
+    $sth = $this->db->prepare($removeToken);
+    $sth->bindParam("user_id", $user_id);
+    $sth->execute();
+
+    return $this->response->withJson(array("rows affected" => $sth->rowCount()));
 });
 
 // Register
@@ -613,7 +643,6 @@ $app->post('/api/profile', function ($request, $response, $args) {
     $user_id = $result->user_id;
 
     $jwt = generateToken($input['username'], $user_id, $this);
-
 
     $email = sendVerifyEmail($input['email'], $input['first_name'], $jwt);
 
@@ -717,10 +746,7 @@ $app->delete('/api/profile', function ($request, $response, $args) {
     logRequest($request, $this);
 
     // Get user_id from jwt in authorization header
-    $key = "your_secret_key";
-    $jwt = $request->getHeaders();
-    $decoded = JWT::decode($jwt['HTTP_AUTHORIZATION'][0], $key, array('HS256'));
-    $user_id = $decoded->context->user->user_id;
+    $user_id = getUserIdFromToken($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -834,10 +860,7 @@ $app->post('/api/vote', function ($request, $response, $args) {
     logRequest($request, $this);
 
     // Get user_id from jwt in authorization header
-    $key = "your_secret_key";
-    $jwt = $request->getHeaders();
-    $decoded = JWT::decode($jwt['HTTP_AUTHORIZATION'][0], $key, array('HS256'));
-    $user_id = $decoded->context->user->user_id;
+    $user_id = getUserIdFromToken($request, $this);
 
     // Get current vote for user on specific deal
     $input = $request->getParsedBody();
@@ -925,10 +948,7 @@ $app->post('/api/flag', function ($request, $response, $args) {
     logRequest($request, $this);
 
     // Get user_id from jwt in authorization header
-    $key = "your_secret_key";
-    $jwt = $request->getHeaders();
-    $decoded = JWT::decode($jwt['HTTP_AUTHORIZATION'][0], $key, array('HS256'));
-    $user_id = $decoded->context->user->user_id;
+    $user_id = getUserIdFromToken($request, $this);
 
     $input = $request->getParsedBody();
 
@@ -985,10 +1005,7 @@ $app->post('/api/comment', function ($request, $response, $args) {
     logRequest($request, $this);
 
     // Get user_id from jwt in authorization header
-    $key = "your_secret_key";
-    $jwt = $request->getHeaders();
-    $decoded = JWT::decode($jwt['HTTP_AUTHORIZATION'][0], $key, array('HS256'));
-    $user_id = $decoded->context->user->user_id;
+    $user_id = getUserIdFromToken($request, $this);
 
     $input = $request->getParsedBody();
 
