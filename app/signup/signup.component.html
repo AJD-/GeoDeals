@@ -48,6 +48,15 @@
 		  <input type="password" [(ngModel)]="user.confirm_password" #signup_confirm_password="ngModel" class="form-control" name="confirmPassword" id="confirmPassword" placeholder="Confirm Password" required>
 		</div>
 	  </div>
+      <div class="form-group">
+          <div class="col-sm-offset-2 col-sm-10">
+              <div class="checkbox">
+                  <label>
+                      <input type="checkbox" [(ngModel)]="user.email_marketing" #signup_email_marketing="ngModel" name="email_marketing" id="email_marketing" value=1 checked> Sign up for our newsletter
+                  </label>
+              </div>
+          </div>
+      </div>
 	  <div class="form-group">
 		<div class="col-sm-offset-2 col-sm-10">
 		  <button type="submit" class="btn btn-primary btn-block">Sign Up</button>

@@ -29,6 +29,7 @@ export class SignupComponent {
                 this.goToFeed(`User registered`);
             });
     }
+
     goToFeed(message) {
         this.router.navigateByUrl('feed')
             .then(() => console.log(message));
