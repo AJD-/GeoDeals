@@ -1,4 +1,9 @@
 <?php
+$API_HOST = "https://api.yelp.com";
+$SEARCH_PATH = "/v3/businesses/search";
+
+// Magically fixes everything -- don't remove this line
+header('Access-Control-Allow-Origin: *');
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
@@ -266,116 +271,6 @@ function getVerifyEmail($firstName, $token) {
     return $message;
 }
 
-function getVerifiedResponse() {
-    $html = '
-    <html>
-        <head>
-            <style>
-                * {
-                    font-family: Arial, Helvetica, sans-serif;
-                }
-
-                body {
-                    background-color: #e8e8e8;
-                }
-
-                #main {
-                    display: block;
-                    margin: auto;
-                    padding-bottom: 15px;
-                    width: 620px;
-                    background-color: white;
-                    border-radius: 3px;
-                    box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.2), 0 1px 5px 0 rgba(0,0,0,0.12);
-                    /* Makes hero image margin-top and center work */
-                    overflow: hidden;
-                }
-
-                #hero-img {
-                    display: block;
-                    margin-left: auto;
-                    margin-right: auto;
-                    margin-top: 25px;
-                }
-
-                #bottom-img {
-                    margin-top: 14px;
-                }
-
-                h1 {
-                    color: black;
-                    margin: 36px 0 24px 0;
-                    padding: 0 28px;
-                }
-
-                .message {
-                    color: #5e5e5e;
-                    font-size: 17px;
-                    padding: 0 28px;
-                }
-
-                #greeting {
-                    margin-bottom: 2px;
-                }
-
-                #signature {
-                    margin: 0;
-                }
-
-                #button {
-                    display: block;
-                    background: #039be5;
-                    color: white;
-                    height: 58px;
-                    line-height: 58px;
-                    width: 90%;
-                    font-size: 16px;
-                    text-align: center;
-                    text-decoration: none;
-                    margin: 34px auto;
-                    padding: auto 0;
-                    border: 0;
-                    border-radius: 3px;
-                    box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.2), 0 1px 5px 0 rgba(0,0,0,0.12);
-                }
-
-                #bottom {
-                    text-align: center;
-                }
-
-                #copyright {
-                    color: #5e5e5e;
-                    margin: 28px 0 4px 0;
-                    font-size: 14px;
-                }
-
-                #address {
-                    color: #5e5e5e;
-                    margin-top: 4px;
-                    font-size: 14px;
-                }
-            </style>
-        </head>
-        <body>
-            <div id="main">
-                <img id="hero-img" src="/GeoDealsLogo7.png" width="210">
-                <h1>Your email address has been verified</h1>
-                <p class="message">Thank you, your account has been activated and you\'re now ready to begin using GeoDeals. Happy saving! </p>
-                <p class="message" id="greeting">Sincerely, </p>
-                <p class="message" id="signature">The GeoDeals Team </p>
-                <a id="button" href="http://dealsinthe.us"><b>Go To GeoDeals</b></a>
-            </div>
-            <div id="bottom">
-                <p id="copyright">&copy; 2017 GeoDeals. All rights reserved. </p>
-                <p id="address">GeoDeals, 3140 Dyer St #2409 Dallas, TX 75205 </p>
-                <img id="bottom-img" src="/GeoDealDude.png" width="160">
-            </div>
-        </body>
-    </html>';
-
-    return $html;
-}
-
 // Get email content as text without html or css
 function getVerifyEmailAsText($firstName, $token) {
     $withHtml = getVerifyEmail($firstName, $token);
@@ -390,6 +285,14 @@ function sendVerifyEmail($toAddress, $firstName, $token) {
     $mgClient = new Mailgun('key-547d6d3ea18bc2442ae114c6d3506c7a');
 
     $domain = 'mg.dealsinthe.us';
+
+    //$this->view->render($email_html, 'home.twig');
+
+    // $app->render('the-template.php', array(
+    //     'name' => 'John',
+    //     'email' => '[email blocked]',
+    //     'active' => true
+    // ));
 
     # Now, compose and send your message.
     $result = $mgClient->sendMessage($domain, array(
@@ -421,7 +324,50 @@ function getZipsInRadius($zip, $radius) {
     return json_decode($response);
 }
 
+// Thanks to yelp github for this portion of the code
+// https://github.com/Yelp/yelp-fusion
+function yelp_request($bearer_token, $host, $path, $url_params = array()) {
+    // Send Yelp API Call
+    try {
+        $curl = curl_init();
+        if (FALSE === $curl)
+            throw new Exception('Failed to initialize');
+        $url = $host . $path . "?" . http_build_query($url_params);
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,  // Capture response.
+            CURLOPT_ENCODING => "",  // Accept gzip/deflate/whatever.
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "GET",
+            CURLOPT_HTTPHEADER => array(
+                "authorization: Bearer " . $bearer_token,
+                "cache-control: no-cache",
+            ),
+        ));
+        $response = curl_exec($curl);
+        if (FALSE === $response)
+            throw new Exception(curl_error($curl), curl_errno($curl));
+        $http_status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        if (200 != $http_status)
+            throw new Exception($response, $http_status);
+        curl_close($curl);
+    } catch(Exception $e) {
+        trigger_error(sprintf(
+            'Curl failed with error #%d: %s',
+            $e->getCode(), $e->getMessage()),
+            E_USER_ERROR);
+    }
+    return $response;
+}
+
 // Routes
+// Default
+$app->get('/', function ($request, $response){
+    return $this->view->render($response, 'home.twig');
+});
+
 // Verify email
 $app->get('/api/verify-email/[{token}]', function ($request, $response, $args) {
 
@@ -439,11 +385,7 @@ $app->get('/api/verify-email/[{token}]', function ($request, $response, $args) {
     $sth->bindParam("token", $args['token']);
     $sth->execute();
 
-    // Return HTML confirmation page with link to GeoDeals
-    $body = $response->getBody();
-    $body->write(getVerifiedResponse());
-
-    return $this->response->getBody();
+    return $this->view->render($response, 'verified_response.twig');
 });
 
 // Get header information
@@ -758,8 +700,25 @@ $app->delete('/api/profile', function ($request, $response, $args) {
     return $this->response->withJson(array("rows affected" => $sth->rowCount()));
 });
 
-// Deals
-$app->get('/api/deals/[{location}]', function ($request, $response, $args) {
+
+
+$app->post('/api/stores/search', function ($request, $response, $args) {
+
+
+});
+
+
+// Default search for deals
+$app->get('/api/deals/search', function ($request, $response, $args) {
+    $input = $request->getParsedBody();
+
+    $search_term = $input['search_term'];
+    $latitude_by_js = $input['latitude'];
+    $longitude_by_js = $input['longitude'];
+    $radius_in_miles = $input['radius'];
+    $conversion_factor = 1609;
+    $radius_in_meters = ( ((float)$radius_in_miles) * ((float)$conversion_factor) );
+    //$radius_in_meters = 4000;
 
     // Grab IP address
     $ip_address = $_SERVER['REMOTE_ADDR'];
@@ -767,43 +726,187 @@ $app->get('/api/deals/[{location}]', function ($request, $response, $args) {
     // Get zip based on IP address
     $location_info = getLocation($ip_address);
     $zip = $location_info->zip;
+    $lat_by_ip = $location_info->lat;
+    $lon_by_ip = $location_info->lon;
+    $city_by_ip = $location_info->city;
 
-    // Get zips within 10 mile radius
-    $radius = 3;
-    //$zips_in_radius = getZipsInRadius($zip,$radius)->zip_codes;
-    $zip_arr = array();
-    $zip_arr = array("75218","75217","75216","75215","75214","75205");
+    $bearer_token_env = $_SERVER["BEARER_TOKEN"];
+    //$bearer_token_env = getenv('BEARER_TOKEN', true) ?: getenv('BEARER_TOKEN');
 
+    $url_params = array();
+    
+    // In this instance, it should return everythin in the dallas area in our database
+
+    $url_params = array();
+    $url_params['latitude'] = $lat_by_ip;
+    $url_params['longitude'] = $lon_by_ip;
+    $url_params['radius'] = 40000;
+
+    // In the instance that nothing is passed in, grab the city by ip and display a range of deals
+    //SELECT * FROM deals WHERE store_id LIKE '%$city_by_ip%';
+    $find = "SELECT * FROM deals WHERE store_id LIKE '%$city_by_ip%'";
+    try {
+        $db = $this->db;
+        $stmt = $db->prepare($find);
+        //$stmt->bindParam("store_id_implode", $store_id_implode);
+        $stmt->execute();
+        $returned_deals = $stmt->fetchAll();
+        $db = null;
+        $final_deals = null;
+
+        if ($returned_deals) {
+            $final_deals = $returned_deals;
+        }
+    } catch (PDOException $e) {
+        echo '{"error":{"text": "Error during location gathering"}}';
+    }
 
     //
     $obj = array( 'deals' => [
-    array(
-    "deal_id"=> 1,
-    "username"=> "rhallmark",
-    "title"=> "Half off T-Shirts",
-    "store"=> "Target",
-    "description"=> "Half off kids shirt at target",
-    "category"=> "Clothing"
-    ),
-    array(
-    "deal_id"=> 2,
-    "username"=> "russellrocks",
-    "title"=> "20% off pots",
-    "store"=> "Walmart",
-    "description"=> "Get all the pots!",
-    "category"=> "Kitchen"
-    ),
-    array(
-    "deal_id"=> 3,
-    "username"=> "kellenrocks",
-    "title"=> "Buy one get one free pants",
-    "store"=> "Khols",
-    "description"=> "I got four pants for free!",
-        "category"=> "Clothing"
-    )],
-    "zips_in_radius" => $zip_arr,
-    );
+    "term" => $url_params['term'],
+    "lat" => $url_params['latitude'],
+    "lon" => $url_params['longitude'],
+    "radius" => $url_params['radius'],
+    "store_id_implode" => $store_id_implode,
+    "final_deals" => $final_deals
+    ]);
     return $this->response->withJson($obj);
+});
+
+
+// Search Deals
+$app->post('/api/deals/search', function ($request, $response, $args) {
+    $input = $request->getParsedBody();
+
+    $search_term = $input['search_term'];
+    $latitude_by_js = $input['latitude'];
+    $longitude_by_js = $input['longitude'];
+    $radius_in_miles = $input['radius'];
+    $conversion_factor = 1609;
+    $radius_in_meters = ( ((float)$radius_in_miles) * ((float)$conversion_factor) );
+    //$radius_in_meters = 4000;
+
+    // Grab IP address
+    $ip_address = $_SERVER['REMOTE_ADDR'];
+
+    // Get zip based on IP address
+    $location_info = getLocation($ip_address);
+    $zip = $location_info->zip;
+    $lat_by_ip = $location_info->lat;
+    $lon_by_ip = $location_info->lon;
+    $city_by_ip = $location_info->city;
+
+    $bearer_token_env = $_SERVER["BEARER_TOKEN"];
+    //$bearer_token_env = getenv('BEARER_TOKEN', true) ?: getenv('BEARER_TOKEN');
+
+    $url_params = array();
+
+    // If search terms are provided by JS
+    if($search_term && $latitude_by_js && $longitude_by_js && $radius_in_meters){
+        $url_params['term'] = $search_term;
+        $url_params['latitude'] = $latitude_by_js;
+        $url_params['longitude'] = $longitude_by_js;
+        $url_params['radius'] = $radius_in_meters;
+    } // If search terms are provided by browser
+    else if ($search_term && $lat_by_ip && $lon_by_ip && $radius_in_meters){
+        $url_params = array();
+        $url_params['term'] = $search_term;
+        $url_params['latitude'] = $lat_by_ip;
+        $url_params['longitude'] = $lon_by_ip;
+        $url_params['radius'] = $radius_in_meters;
+    }
+    else{
+        echo '{"error":{"text": "Error invalid search params."},
+        {"search_term":"string", "latitude":"number", "longitude": "number", "radius": "number"}}';
+    }
+
+
+    try{
+        $store_list = yelp_request($bearer_token_env, $GLOBALS['API_HOST'], $GLOBALS['SEARCH_PATH'], $url_params);
+        //$pretty_response = json_encode(json_decode($store_list), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        //Uses current to get first element of key,val associative array that does not have a a key and is the only element
+        $store_obj = current(json_decode($store_list));
+    }catch (Exception $e) {
+        echo '{"error":{"text": "Could not connect to yelp API."}}'; 
+    }
+
+    // Will contain a list of store ids
+    $store_id_list = array();
+    foreach($store_obj as $store) {
+        array_push($store_id_list, $store->id);
+    }
+
+    $store_id_implode = "('" . implode("','",$store_id_list) . "')";
+
+    
+    //SELECT * FROM deals WHERE store_id IN ('best-buy-dallas-2','target-dallas');
+    //$find = "SELECT * FROM stores WHERE zip_code IN (:store_id_implode)";
+    $find = "SELECT * FROM deals WHERE store_id IN $store_id_implode";
+    try {
+        $db = $this->db;
+        $stmt = $db->prepare($find);
+        //$stmt->bindParam("store_id_implode", $store_id_implode);
+        $stmt->execute();
+        $returned_deals = $stmt->fetchAll();
+        $db = null;
+        $final_deals = null;
+
+        if ($returned_deals) {
+            $final_deals = $returned_deals;
+        }
+    } catch (PDOException $e) {
+        echo '{"error":{"text": "Error during location gathering"}}';
+    }
+
+    //
+    $obj = array( 'deals' => [
+    "term" => $url_params['term'],
+    "lat" => $url_params['latitude'],
+    "lon" => $url_params['longitude'],
+    "radius" => $url_params['radius'],
+    "store_id_implode" => $store_id_implode,
+    "final_deals" => $final_deals
+    ]);
+    return $this->response->withJson($obj);
+
+
+    //$zips_in_radius = getZipsInRadius($zip,$radius)->zip_codes;
+    //$zip_arr = array(75231,75214);
+    //$zip_arr = array('75231','75214');
+
+    //$zip_implode = implode(',',$zip_arr);
+    //$zip_implode = "(" . implode(',',$zip_arr) . ")";
+
+
+    // array(
+    // "deal_id"=> 1,
+    // "username"=> "rhallmark",
+    // "title"=> "Half off T-Shirts",
+    // "store"=> "Target",
+    // "description"=> "Half off kids shirt at target",
+    // "category"=> "Clothing"
+    // ),
+    // array(
+    // "deal_id"=> 2,
+    // "username"=> "russellrocks",
+    // "title"=> "20% off pots",
+    // "store"=> "Walmart",
+    // "description"=> "Get all the pots!",
+    // "category"=> "Kitchen"
+    // ),
+    // array(
+    // "deal_id"=> 3,
+    // "username"=> "kellenrocks",
+    // "title"=> "Buy one get one free pants",
+    // "store"=> "Khols",
+    // "description"=> "I got four pants for free!",
+    //     "category"=> "Clothing"
+    // )],
+
+
+    // "zips_in_radius" => $zip_implode,
+    // "radius"=> $radius,
+    // "final_stores" => $returned_stores
 });
 
 // Get specific deal
@@ -820,7 +923,7 @@ $app->get('/api/deal/[{deal_id}]', function ($request, $response, $args) {
 });
 
 // Add New Deal
-$app->post('/api/newdeal', function ($request, $response, $args) {
+$app->post('/api/deal', function ($request, $response, $args) {
     $obj = array(
     "deal_id"=> 1,
     "username"=> "rhallmark",

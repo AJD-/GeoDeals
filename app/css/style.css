@@ -1,0 +1,10 @@
+body{
+	margin: 0;
+}
+.header{
+	padding-left: 10px;
+	background-color: darkgrey;
+}
+.main{
+	background-color: grey;
+}
