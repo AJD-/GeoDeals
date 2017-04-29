@@ -20,7 +20,7 @@ export class AddDealComponent {
             .then(x => this.goToDealDetail('Deal Submitted'));
     }
     goToDealDetail(message: string) {
-        this.router.navigateByUrl('deal/' + this.deal.id) //this won't work as we don't know the deal id before we send it off
+        this.router.navigateByUrl('feed') // change to send to deal detail when that is completed
             .then(() => console.log(message));
     }
 }
