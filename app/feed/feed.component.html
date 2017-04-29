@@ -4,7 +4,7 @@
 <div class="row" *ngFor="let deal of deals; let i = index">
 	<div class="media thumbnail">
 		<div class="pull-left">
-			<a [routerLink]="['deal/',deal.id]">
+			<a [routerLink]="['../deal/',deal.deal_id]">
 				<img class="media-object deal-icon" [src]="deal.imagePath" onError="this.src='/img/default-thumbnail.jpg';" [alt]="deal.title"><!-- Should be getting data from the deal -->
 			</a>
 		</div>
