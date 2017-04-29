@@ -178,7 +178,7 @@ function generateToken($user, $user_id, $_this){
   
 // Get HTML of confirmation email
 function getVerifyEmail($firstName, $token) {
-    $link = 'http://54.70.254.84/api/verify-email/' . $token;
+    $link = 'http://54.70.252.84/api/verify-email/' . $token;
     $message = '
     <html>
         <head>
