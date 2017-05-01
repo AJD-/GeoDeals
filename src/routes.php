@@ -143,7 +143,7 @@ function generateToken($user, $user_id, $_this){
     $key = "your_secret_key";
 
     $payload = array(
-        "iss"     => "http://www.dealsinthe.us",
+        "iss"     => "https://www.dealsinthe.us",
         "iat"     => time(),
         "exp"     => time() + (3600 * 24 * 15),
         "context" => [
@@ -179,7 +179,7 @@ function generateToken($user, $user_id, $_this){
   
 // Get HTML of confirmation email
 function getVerifyEmail($firstName, $token) {
-    $link = 'http://dealsinthe.us/api/verify-email/' . $token;
+    $link = 'https://54.70.252.84/api/verify-email/' . $token;
     $message = '
     <html>
         <head>
@@ -255,7 +255,7 @@ function getVerifyEmail($firstName, $token) {
         </head>
         <body>
             <div id="main">
-                <img id="hero-img" src="cid:GeoDealsLogo7.png" width="210">
+                <img id="hero-img" src="cid:./../img/GeoDealsLogo7.png" width="210">
                 <h1>Verify your email address </h1>
                 <p id="message">' . $firstName . ', please confirm that you want to use this as your GeoDeals account email address. Once it\'s done you\'ll be able to start saving! </p>
                 <a id="button" href="' . $link . '"><b>Verify my email </b></a>
@@ -264,7 +264,7 @@ function getVerifyEmail($firstName, $token) {
             <div>
                 <p id="copyright">&copy; 2017 GeoDeals. All rights reserved. </p>
                 <p id="address">GeoDeals, 3140 Dyer St #2409 Dallas, TX 75205 </p>
-                <img id="bottom-img" src="cid:GeoDealDude.png" width="160">
+                <img id="bottom-img" src="cid:./../img/GeoDealDude.png" width="160">
             </div>
         </body>
     </html>';
@@ -303,7 +303,7 @@ function sendVerifyEmail($toAddress, $firstName, $token) {
         'text'    => getVerifyEmailAsText($firstName, $token),
         'html'    => getVerifyEmail($firstName, $token)
     ), array(
-        'inline' => array('./GeoDealDude.png', './GeoDealsLogo7.png')
+        'inline' => array('./../img/GeoDealDude.png', './../img/GeoDealsLogo7.png')
     ));
 
     return $result;
