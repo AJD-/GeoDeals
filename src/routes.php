@@ -97,7 +97,7 @@
 
 // Get Specific Deal
     $app->get('/api/deal/[{deal_id}]', function ($request, $response, $args) {
-        $sth = $this->db->prepare("SELECT deal_id, username, title, store, description, category, expiration_date, posted_date, updated_date, picture_name
+        $sth = $this->db->prepare("SELECT deal_id, username, title, store, description, category, expiration_date, posted_date, deals.updated_date, picture_name
                                    FROM deals, users, categories, stores, pictures
                                    WHERE deals.user_id = users.user_id
                                    AND deals.category_id = categories.category_id
@@ -113,13 +113,9 @@
 
 // Edit a Deal
     $app->put('/api/deal/[{deal_id}]', function ($request, $response, $args) {
-        $getDeal = "SELECT deal_id, username, title, store, description, category, expiration_date, posted_date, updated_date, picture_name
-                    FROM deals, users, categories, stores, pictures
-                    WHERE deals.user_id = users.user_id
-                    AND deals.category_id = categories.category_id
-                    AND deals.store_id = stores.store_id
-                    AND deals.picture_id = pictures.picture_id
-                    AND deal_id = :deal_id";
+        $getDeal = "SELECT deal_id, title, store_id, description, category_id, expiration_date, posted_date, updated_date, picture_name
+                    FROM deals
+                    WHERE deal_id = :deal_id";
 
         $sth = $this->db->prepare($getDeal);
         $sth->bindParam("deal_id", $args['deal_id']);
@@ -140,7 +136,7 @@
                 // Validate file upload
                 $file->addValidations(array(
                         // Ensure file is of type "image/png" or "image/jpeg"
-                        new \Upload\Validation\Mimetype('image/png', 'image/jpeg')),
+                        new \Upload\Validation\Mimetype(array('image/png', 'image/jpeg')),
 
                         // Ensure file is no larger than 5M (use "B", "K", M", or "G")
                         new \Upload\Validation\Size('5M')
@@ -198,7 +194,7 @@
         $sth->bindValue("expiration_date", ($input['expiration_date'] == null ? $deal->expiration_date : $input['expiration_date']));
         $sth->bindParam("posted_date", $currentDateTime);
         $sth->bindParam("updated_date", $currentDateTime);
-        $sth->bindValue("picture_id", ($input['picture_id'] == null ? $deal->picture_id : $picture_id);
+        $sth->bindValue("picture_id", ($input['picture_id'] == null ? $deal->picture_id : $picture_id));
         $sth->execute();
 
         return $this->response->withJson($input); //?
@@ -217,7 +213,7 @@
         // Validate file upload
         $file->addValidations(array(
                 // Ensure file is of type "image/png" or "image/jpeg"
-                new \Upload\Validation\Mimetype('image/png', 'image/jpeg')),
+                new \Upload\Validation\Mimetype(array('image/png', 'image/jpeg')),
 
                 // Ensure file is no larger than 5M (use "B", "K", M", or "G")
                 new \Upload\Validation\Size('5M')
@@ -259,14 +255,14 @@
 
         $input = $request->getParsedBody();
         $sql_deal = "INSERT INTO deals
-                SET title = :title,
-                    store_id = :store_id,
-                    description = :description,
-                    category_id = :category_id,
-                    expiration_date = :expiration_date,
-                    posted_date = :posted_date,
-                    updated_date = :updated_date,
-                    picture_id = :picture_id";
+                     SET title = :title,
+                   	 store_id = :store_id,
+                   	 description = :description,
+                   	 category_id = :category_id,
+                   	 expiration_date = :expiration_date,
+                   	 posted_date = :posted_date,
+                   	 updated_date = :updated_date,
+                   	 picture_id = :picture_id";
         $sth = $this->db->prepare($sql_deal);
         $sth->bindParam("title", $input['title']);
         $sth->bindParam("store_id", $input['store_id']);
@@ -332,3 +328,4 @@
 
 
 
+?>
