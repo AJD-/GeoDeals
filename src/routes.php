@@ -1,6 +1,7 @@
 <?php
 $API_HOST = "https://api.yelp.com";
 $SEARCH_PATH = "/v3/businesses/search";
+$BEARER_TOKEN = $_SERVER["BEARER_TOKEN"];
 
 // Magically fixes everything -- don't remove this line
 header('Access-Control-Allow-Origin: *');
@@ -168,7 +169,7 @@ function generateToken($user, $user_id, $_this){
     $key = "your_secret_key";
 
     $payload = array(
-        "iss"     => "http://www.dealsinthe.us",
+        "iss"     => "https://www.dealsinthe.us",
         "iat"     => time(),
         "exp"     => time() + (3600 * 24 * 15),
         "context" => [
@@ -204,7 +205,7 @@ function generateToken($user, $user_id, $_this){
   
 // Get HTML of confirmation email
 function getVerifyEmail($firstName, $token) {
-    $link = 'http://dealsinthe.us/api/verify-email/' . $token;
+    $link = 'https://54.70.252.84/api/verify-email/' . $token;
     $message = '
     <html>
         <head>
@@ -280,7 +281,7 @@ function getVerifyEmail($firstName, $token) {
         </head>
         <body>
             <div id="main">
-                <img id="hero-img" src="cid:GeoDealsLogo7.png" width="210">
+                <img id="hero-img" src="cid:./../img/GeoDealsLogo7.png" width="210">
                 <h1>Verify your email address </h1>
                 <p id="message">' . $firstName . ', please confirm that you want to use this as your GeoDeals account email address. Once it\'s done you\'ll be able to start saving! </p>
                 <a id="button" href="' . $link . '"><b>Verify my email </b></a>
@@ -289,7 +290,7 @@ function getVerifyEmail($firstName, $token) {
             <div>
                 <p id="copyright">&copy; 2017 GeoDeals. All rights reserved. </p>
                 <p id="address">GeoDeals, 3140 Dyer St #2409 Dallas, TX 75205 </p>
-                <img id="bottom-img" src="cid:GeoDealDude.png" width="160">
+                <img id="bottom-img" src="cid:./../img/GeoDealDude.png" width="160">
             </div>
         </body>
     </html>';
@@ -328,7 +329,7 @@ function sendVerifyEmail($toAddress, $firstName, $token) {
         'text'    => getVerifyEmailAsText($firstName, $token),
         'html'    => getVerifyEmail($firstName, $token)
     ), array(
-        'inline' => array('./GeoDealDude.png', './GeoDealsLogo7.png')
+        'inline' => array('./../img/GeoDealDude.png', './../img/GeoDealsLogo7.png')
     ));
 
     return $result;
@@ -387,6 +388,21 @@ function yelp_request($bearer_token, $host, $path, $url_params = array()) {
     }
     return $response;
 }
+
+// Thanks @rorypicko from stackoverflow:
+// http://stackoverflow.com/questions/11330480/strip-php-variable-replace-white-spaces-with-dashes
+function seoString($string) {
+    //Lower case everything
+    $string = strtolower($string);
+    //Make alphanumeric (removes all other characters)
+    $string = preg_replace("/[^a-z0-9_\s-]/", "", $string);
+    //Clean up multiple dashes or whitespaces
+    $string = preg_replace("/[\s-]+/", " ", $string);
+    //Convert whitespaces and underscore to dash
+    $string = preg_replace("/[\s_]/", "-", $string);
+    return $string;
+}
+
 
 // Routes
 // Default
@@ -727,11 +743,264 @@ $app->delete('/api/profile', function ($request, $response, $args) {
 });
 
 
-
 $app->post('/api/stores/search', function ($request, $response, $args) {
+    // Provide a State, City, and Store name
+    // Endpoint will return a list of 50 potential stores for user to chose from
 
+    // Example utilization: POST json
+    // {
+    //     "state": "Texas",
+    //     "city": "Dallas",
+    //     "store": "target"
+    // }
 
+    $input = $request->getParsedBody();
+
+    $state = $input['state'];
+    $city = $input['city'];
+    $store = $input['store'];
+    $location = $city . ", " . $state;
+
+    $url_params = array();
+    $url_params['limit'] = 50;
+
+    if($city && $store){
+        try{
+            $url_params['term'] = $store;
+            $url_params['location'] = $location;
+
+            $store_list = yelp_request($GLOBALS['BEARER_TOKEN'], $GLOBALS['API_HOST'], $GLOBALS['SEARCH_PATH'], $url_params);
+            //$pretty_response = json_encode(json_decode($store_list), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            //Uses current to get first element of key,val associative array that does not have a a key and is the only element
+            $store_obj = current(json_decode($store_list));
+        }
+        catch (Exception $e) {
+            echo '{"error":{"text": "Could not connect to yelp API."}}'; 
+        }
+    }
+    else{
+        echo '{"error":{"text": "Error invalid search params."},
+        {"state":"string", "city":"string", "store":"string"}}';
+    }
+
+    // Final returned object
+    $obj = array( 'deals' => [
+    "location" => $location,
+    "store" => $url_params['term'],
+    "store_list" => $store_obj
+    ]);
+
+    return $this->response->withJson($obj);
 });
+
+// Default search for deals
+$app->get('/api/deals/search', function ($request, $response, $args) {
+    $input = $request->getParsedBody();
+
+    // Grab IP address
+    $ip_address = $_SERVER['REMOTE_ADDR'];
+
+    // Get zip based on IP address
+    $location_info = getLocation($ip_address);
+    $zip = $location_info->zip;
+    $lat_by_ip = $location_info->lat;
+    $lon_by_ip = $location_info->lon;
+    $city_by_ip = $location_info->city;
+
+    // In the instance that nothing is passed in, grab the city by ip and display a range of deals
+    //SELECT * FROM deals WHERE store_id LIKE '%$city_by_ip%';
+    $find = "SELECT * FROM deals WHERE store_id LIKE '%$city_by_ip%'";
+    try {
+        $db = $this->db;
+        $stmt = $db->prepare($find);
+        //$stmt->bindParam("store_id_implode", $store_id_implode);
+        $stmt->execute();
+        $returned_deals = $stmt->fetchAll();
+        $db = null;
+        $final_deals = null;
+
+        if ($returned_deals) {
+            $final_deals = $returned_deals;
+        }
+    } catch (PDOException $e) {
+        echo '{"error":{"text": "Error during location gathering"}}';
+    }
+
+    // Final returned object
+    $obj = array( 'deals' => [
+    "final_deals" => $final_deals
+    ]);
+    return $this->response->withJson($obj);
+});
+
+
+// Search Deals
+$app->post('/api/deals/search', function ($request, $response, $args) {
+    // Best summary of what this endpoint does:
+    
+    // The business_keyword parameter requires a store or business name and will return a list of businesses
+    // with that name (or businesses that sell similar items) within the provided radius of your location.
+    
+    // Then that list is cross referenced against our database of deals. Any deals that
+    // we have in our database with a matching store name will be returned to the user.
+    
+    // However, if provided, the deal_keyword parameter will narrow this result down by 
+    // skimming through all final deals (both title and description) for the string provided.
+    
+
+    // Example utilization: POST json
+    // {
+    //     "business_keyword": "best buy",
+    //     "radius": 20,
+    //     "deal_keyword": "cpu",
+    //     "latitude": 32.76,
+    //     "longitude": -96.77
+    // }
+
+    $input = $request->getParsedBody();
+
+    $business_keyword = $input['business_keyword'];
+    $deal_keyword = $input['deal_keyword'];
+    $latitude_by_js = $input['latitude'];
+    $longitude_by_js = $input['longitude'];
+    $radius_in_miles = $input['radius'];
+    $conversion_factor = 1609;
+    $radius_in_meters = ( ((float)$radius_in_miles) * ((float)$conversion_factor) );
+    //$radius_in_meters = 4000;
+
+    // Grab IP address
+    $ip_address = $_SERVER['REMOTE_ADDR'];
+
+    // Get zip based on IP address
+    $location_info = getLocation($ip_address);
+    $zip = $location_info->zip;
+    $lat_by_ip = $location_info->lat;
+    $lon_by_ip = $location_info->lon;
+    $city_by_ip = $location_info->city;
+
+    $url_params = array();
+    $url_params['limit'] = 50;
+    //$url_params['offset'] = 40; could be utilized for iteration through business limit
+
+    // Presumtion is that radius is *always* provided at least as a default value
+    // Since deal_keyword is not correlated in any way with the yelp API, setting URL params does not incorprate it
+
+    // If business keyword provided, radius provided, latitude provided by js, and longitude provided by js
+    if($business_keyword && $latitude_by_js && $longitude_by_js && $radius_in_meters){
+        $url_params['term'] = $business_keyword;
+        $url_params['latitude'] = $latitude_by_js;
+        $url_params['longitude'] = $longitude_by_js;
+        $url_params['radius'] = $radius_in_meters;
+    } 
+    // If business keyword provided, radius provided, but lat and lon not provided by js
+    else if ($business_keyword && $lat_by_ip && $lon_by_ip && $radius_in_meters){
+        $url_params['term'] = $business_keyword;
+        $url_params['latitude'] = $lat_by_ip;
+        $url_params['longitude'] = $lon_by_ip;
+        $url_params['radius'] = $radius_in_meters;
+    }
+    // If business keyword NOT provided, radius provided, latitude provided by js, and longitude provided by js
+    else if ($latitude_by_js && $longitude_by_js && $radius_in_meters){
+        $url_params['latitude'] = $lat_by_ip;
+        $url_params['longitude'] = $lon_by_ip;
+        $url_params['radius'] = $radius_in_meters;
+    }
+    // If business keyword NOT provided, radius provided, but lat and lon not provided by js
+    else if ($lat_by_ip && $lon_by_ip && $radius_in_meters){
+        $url_params['latitude'] = $lat_by_ip;
+        $url_params['longitude'] = $lon_by_ip;
+        $url_params['radius'] = $radius_in_meters;
+    }
+    else{
+        echo '{"error":{"text": "Error invalid search params."},
+        {"business_keyword":"string", "deal_keyword":"string", "latitude":"number", "longitude": "number", "radius": "number"}}';
+    }
+
+    if($business_keyword){
+        try{
+            $store_list = yelp_request($GLOBALS['BEARER_TOKEN'], $GLOBALS['API_HOST'], $GLOBALS['SEARCH_PATH'], $url_params);
+            //$pretty_response = json_encode(json_decode($store_list), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            //Uses current to get first element of key,val associative array that does not have a a key and is the only element
+            $store_obj = current(json_decode($store_list));
+        }catch (Exception $e) {
+            echo '{"error":{"text": "Could not connect to yelp API."}}'; 
+        }
+    }
+
+    // Will contain a list of store ids
+    $store_id_list = array();
+    foreach($store_obj as $store) {
+        array_push($store_id_list, $store->id);
+    }
+
+    // Imploding into Comma Separated List for Easy SQL Querying
+    $store_id_implode = "('" . implode("','",$store_id_list) . "')";
+
+    // If a store_keyword and a deal_keyword parameter is provided, return narrowed search results
+    if($business_keyword && $deal_keyword){
+        //SELECT * FROM deals WHERE store_id IN ('best-buy-dallas-2') AND (title LIKE '%free%' OR description LIKE '%free%');
+        $find = "SELECT * FROM deals WHERE store_id IN $store_id_implode AND (title LIKE '%$deal_keyword%' OR description LIKE '%$deal_keyword%');";
+    }
+    // If only a deal_keyword is provided, search for all deals with that keyword in the current city based on provided IP Address
+    else if($deal_keyword){
+        //SELECT * FROM deals WHERE store_id LIKE '%dalls%' AND (title LIKE '%free%' OR description LIKE '%free%');
+        $find = "SELECT * FROM deals WHERE store_id LIKE '%$city_by_ip%' AND (title LIKE '%$deal_keyword%' OR description LIKE '%$deal_keyword%');";
+    }
+    // Otherwise if only a business_keyword is provided, return deals from all stores that match the business_keyword parameter
+    else if($business_keyword){
+        //SELECT * FROM deals WHERE store_id IN ('best-buy-dallas-2','target-dallas');
+        //$find = "SELECT * FROM stores WHERE zip_code IN (:store_id_implode)";
+        $find = "SELECT * FROM deals WHERE store_id IN $store_id_implode";
+    }
+
+    try {
+        $db = $this->db;
+        $stmt = $db->prepare($find);
+        //$stmt->bindParam("store_id_implode", $store_id_implode);
+        $stmt->execute();
+        $returned_deals = $stmt->fetchAll();
+        $db = null;
+        $final_deals = null;
+
+        if ($returned_deals) {
+            $final_deals = $returned_deals;
+        }
+    } catch (PDOException $e) {
+        echo '{"error":{"text": "Error during location gathering"}}';
+    }
+
+    // SEO optimize business_keyword
+    // Particularly, replace spaces with dashes
+    $seo_business_keyword = seoString($business_keyword);
+
+    // Some magical hand-wavey "preference reordering" -- Placing what they want to see at the top
+    // Basically, if your search term is in the store name, place that at the top of the list
+    $optimized_deals = array();
+    foreach($final_deals as $deal) {
+        // If the business keyword IS in the store ID, 
+        //prepend the deal to the beginning of the final optimized array
+        //array_push($optimized_deals, $deal["store_id"]);
+        if(strpos($deal["store_id"], $seo_business_keyword) !== false ){
+            array_unshift($optimized_deals, $deal); 
+        }
+        else{
+            array_push($optimized_deals, $deal);
+        }
+    }
+    
+    // Final returned object
+    $obj = array( 'deals' => [
+    "term" => $url_params['term'],
+    "lat" => $url_params['latitude'],
+    "lon" => $url_params['longitude'],
+    "radius" => $url_params['radius'],
+    "store_id_implode" => $store_id_implode,
+    "final_deals" => $final_deals,
+    "optimized_deals" => $optimized_deals
+    ]);
+    return $this->response->withJson($obj);
+});
+
 
 // Get specific deal
 $app->get('/api/deal/[{deal_id}]', function ($request, $response, $args) {
