@@ -33,3 +33,7 @@ form .ng-invalid.ng-touched{
     background: pink;
     border: 1px solid red;
 }
+#logout{
+    float: right;
+    width: 80px;
+}
