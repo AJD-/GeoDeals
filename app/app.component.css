@@ -33,3 +33,12 @@ form .ng-invalid.ng-touched{
     background: pink;
     border: 1px solid red;
 }
+body {
+    background-color: lightgray;
+}
+#logo-image {
+    display: block;
+    margin: auto;
+    width: 30vh;
+    margin-top: 55vh;
+}
