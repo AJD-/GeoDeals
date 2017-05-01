@@ -6,7 +6,7 @@ import { Deal } from './deal';
 
 @Injectable()
 export class DealRepository {
-    private _apiUrl = 'http://54.70.252.84/api/deals/search';
+    private _apiUrl = 'https://54.70.252.84/api/deals/search';
 
 	private _deals: Deal[];
 
