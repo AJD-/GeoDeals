@@ -52,7 +52,7 @@ export class FeedComponent {
 		}else{
             this.deals[index].rating--;
             this.vote.deal_id = index;
-            this.vote.vote_type = 2;
+            this.vote.vote_type = 0;
             this.voteService.vote(this.vote)
                 .then(x => console.log("Unvoted"));
 			this.uv[index] = false;
@@ -72,14 +72,14 @@ export class FeedComponent {
 			}
             this.deals[index].rating--;
             this.vote.deal_id = index;
-            this.vote.vote_type = 0;
+            this.vote.vote_type = -1;
             this.voteService.vote(this.vote)
                 .then(x => console.log("Voted down"));
 			this.dv[index] = true;
 		}else{
             this.deals[index].rating++;
             this.vote.deal_id = index;
-            this.vote.vote_type = 2;
+            this.vote.vote_type = 0;
             this.voteService.vote(this.vote)
                 .then(x => console.log("Unvoted"));
 			this.dv[index] = false;
