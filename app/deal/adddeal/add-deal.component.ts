@@ -11,6 +11,8 @@ import { DealRepository } from '../../api/deal-repository.service';
 export class AddDealComponent {
 
     private deal: any = {};
+    private lat: number;
+    private long: number;
 
     constructor(private router: Router,
         private route: ActivatedRoute,
@@ -22,5 +24,16 @@ export class AddDealComponent {
     goToDealDetail(message: string) {
         this.router.navigateByUrl('feed') // change to send to deal detail when that is completed
             .then(() => console.log(message));
+    }
+    getLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(this.getCoords);
+        } else {
+            let errstr = "Geolocation is not supported by this browser.";
+        }
+    }
+    getCoords(position) {
+        this.lat = position.coords.latitude;
+        this.long = position.coords.longitude;
     }
 }

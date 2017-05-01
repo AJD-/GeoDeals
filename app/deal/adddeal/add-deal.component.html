@@ -1,10 +1,43 @@
 <div class="col-md-12 text-center">
+    <form name="locationForm" #locationForm="ngForm" class="form-horizontal">
+        <div class="form-group">
+            <label for="location" class="col-sm-2 control-label">Location: </label>
+            <div class="col-sm-5">
+                <label for="state" class="control-label">State:</label>
+                <input type="text" name="state" id="state" />
+                <label for="city" class="control-label">City:</label>
+                <input type="text" name="city" id="city" />
+                <button type="button" class="btn btn-default searchBtn" data-toggle="modal" data-target="#dealloc">Search with Location</button>
+            </div>
+            <div class="col-sm-5">
+                <button type="button" class="btn btn-default" data-toggle="modal" data-target="#dealloc"><span class="glyphicon glyphicon-map-marker"></span> Get My Location</button>
+            </div>
+            <!-- Modal -->
+            <div id="dealloc" class="modal fade" role="dialog">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal">&times;</button>
+                            <h4 class="modal-title">Store Location</h4>
+                        </div>
+                        <div class="modal-body">
+                            <button class="btn btn-default" type="button" (click)="getLocation()">Get my location</button>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End modal -->
+        </div>
+    </form>
     <form name="dealForm" #dealForm="ngForm" class="form-horizontal" (ngSubmit)="submit()">
         <div class="form-group">
             <label for="inputPicture" class="col-sm-2 control-label">Picture:</label>
             <label class="btn btn-default btn-file col-sm-10 pictureUp">
                 Take a Picture or Choose from file
-                <input type="file" accept="image/*" [(ngModel)]="deal.image" #deal_image="ngModel" name="image" capture hidden required>
+                <input type="file" accept="image/*" [(ngModel)]="deal.image" #deal_image="ngModel" name="image" capture hidden>
                 <span class="glyphicon glyphicon-folder-open"></span>
             </label>
             <div *ngIf="deal_image.errors && deal_image.touched" class="alert alert-danger" role="alert">
@@ -34,7 +67,18 @@
         <div class="form-group">
             <label for="inputCategory" class="col-sm-2 control-label">Category:</label>
             <div class="col-sm-10">
-                <input type="text" [(ngModel)]="deal.category" #deal_category="ngModel" name="category" class="form-control" id="inputCategory" placeholder="Input a category, eg Clothing" required>
+                <select [(ngModel)]="deal.category" #deal_category="ngModel" name="category" class="form-control" id="inputCategory" required>
+                    <option>Food & drink</option>
+                    <option>Sporting goods</option>
+                    <option>Clothes</option>
+                    <option>Books, toys, and games</option>
+                    <option>Yard supplies</option>
+                    <option>Hardware</option>
+                    <option>Electronics</option>
+                    <option>Personal care</option>
+                    <option>Entertainment</option>
+                    <option>Other</option>
+                </select>
                 <div *ngIf="deal_category.errors && deal_category.touched" class="alert alert-danger" role="alert">
                     <ul>
                         <li [hidden]="!deal_category.errors.required">
@@ -44,6 +88,7 @@
                 </div>
             </div>
         </div>
+       
         <div class="form-group">
             <label for="inputDesc" class="col-sm-2 control-label">Description:</label>
             <div class="col-sm-10">
