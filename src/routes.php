@@ -82,104 +82,203 @@
 
 // Deals
     $app->get('/api/deals/[{location}]', function ($request, $response, $args) {
-	$sth = $this->db->prepare("SELECT deals.deal_id, username, title, store, description, category, expiration_date, posted_date, deals.updated_date, path_to_file
-				   FROM deals, users, categories, stores, pictures
-				   WHERE deals.user_id = users.user_id
-				   AND deals.category_id = categories.category_id
-				   AND deals.store_id = stores.store_id
-				   AND deals.deal_id = pictures.deal_id
-				   ORDER BY deals.updated_date DESC"); //?
-	$sth->execute();
-	$deals = $sth->fetchAll();
+        $sth = $this->db->prepare("SELECT deal_id, username, title, store, description, category, expiration_date, posted_date, updated_date, picture_name
+                                   FROM deals, users, categories, stores, pictures
+                                   WHERE deals.user_id = users.user_id
+                                   AND deals.category_id = categories.category_id
+                                   AND deals.store_id = stores.store_id
+                                   AND deals.picture_id = pictures.picture_id
+                                   ORDER BY deals.updated_date DESC"); //?
+        $sth->execute();
+        $deals = $sth->fetchAll();
         return $this->response->withJson($deals);
     });
 
 
 // Get Specific Deal
     $app->get('/api/deal/[{deal_id}]', function ($request, $response, $args) {
-	$sth = $this->db->prepare("SELECT deals.deal_id, username, title, store, description, category, expiration_date, posted_date, deals.updated_date, path_to_file
-				   FROM deals, users, categories, stores, pictures
-				   WHERE deals.user_id = users.user_id
-				   AND deals.category_id = categories.category_id
-				   AND deals.store_id = stores.store_id
-				   AND deals.deal_id = pictures.deal_id
-				   AND deals.deal_id = :deal_id");
-	$sth->bindParam("deal_id", $args['deal_id']);
-	$sth->execute();
-	$deals = $sth->fetchObject();
+        $sth = $this->db->prepare("SELECT deal_id, username, title, store, description, category, expiration_date, posted_date, updated_date, picture_name
+                                   FROM deals, users, categories, stores, pictures
+                                   WHERE deals.user_id = users.user_id
+                                   AND deals.category_id = categories.category_id
+                                   AND deals.store_id = stores.store_id
+                                   AND deals.picture_id = pictures.picture_id
+                                   AND deal_id = :deal_id");
+        $sth->bindParam("deal_id", $args['deal_id']);
+        $sth->execute();
+        $deals = $sth->fetchObject();
         return $this->response->withJson($deals);
     });
 
 
 // Edit a Deal
     $app->put('/api/deal/[{deal_id}]', function ($request, $response, $args) {
-	$input = $request->getParsedBody();
-	$sql = "UPDATE deals
-		SET title = :title,
-		    store = :store,
-		    description = :description,
-		    category = :category,
-		    expiration_date = :expiration_date,
-		    updated_date = :updated_date
-		WHERE deal_id = :deal_id";
-	$sth = $this->db->prepare($sql);
-	$sth->bindParam("title", $input['title']);
-	$sth->bindParam("store_id", $input['store_id']);
-	$sth->bindParam("description", $input['description']);
-	$sth->bindParam("category_id", $input['category_id']);
-	$sth->bindParam("expiration_date", $input['expiration_date']);
-	$sth->bindParam("updated_date", date('Y-m-d H:i:s'));
-	$sth->execute();
-	//pictures
-	$outputSql = "SELECT deals.deal_id, username, title, store, description, category, expiration_date, deals.updated_date, path_to_file
-		      FROM deals, users, categories, stores, pictures
-		      WHERE deals.user_id = users.user_id
-		      AND deals.category_id = category_id
-		      AND deals.store_id = stores,store_id
-		      AND deals.deal_id = pictures.deal_id
-		      ORDER BY deals.updated_date DESC
-		      LIMIT 1";
-	$output = $this->db->prepare($outputSql);
-	$output->execute();
-	$return = $output->fetchObject();
-	return $this->response->withJson($input);
+        $getDeal = "SELECT deal_id, username, title, store, description, category, expiration_date, posted_date, updated_date, picture_name
+                    FROM deals, users, categories, stores, pictures
+                    WHERE deals.user_id = users.user_id
+                    AND deals.category_id = categories.category_id
+                    AND deals.store_id = stores.store_id
+                    AND deals.picture_id = pictures.picture_id
+                    AND deal_id = :deal_id";
+
+        $sth = $this->db->prepare($getDeal);
+        $sth->bindParam("deal_id", $args['deal_id']);
+        $sth->execute();
+        $deal = $sth->fetchObject();
+
+        $picture_id = null;
+        $currentDateTime = date('Y-m-d H:i:s');
+
+        if ('image' != null) {
+                $storage = new \Upload\Storage\FileSystem('./pictures');
+                $file = new \Upload\File('image', $storage);
+
+                // Optionally you can rename the file on upload
+                $new_filename = uniqid();
+                $file->setName($new_filename);
+
+                // Validate file upload
+                $file->addValidations(array(
+                        // Ensure file is of type "image/png" or "image/jpeg"
+                        new \Upload\Validation\Mimetype('image/png', 'image/jpeg')),
+
+                        // Ensure file is no larger than 5M (use "B", "K", M", or "G")
+                        new \Upload\Validation\Size('5M')
+                ));
+
+                // Access data about the file that has been uploaded
+                $data = array(
+                        'name'       => $file->getNameWithExtension(),
+                        'extension'  => $file->getExtension(),
+                        'mime'       => $file->getMimetype(),
+                        'size'       => $file->getSize(),
+                        'md5'        => $file->getMd5(),
+                        'dimensions' => $file->getDimensions()
+                );
+
+                // Try to upload file
+                try {
+                        // Success!
+                        $file->upload();
+                } catch (\Exception $e) {
+                        // Fail!
+                        $errors = $file->getErrors();
+                }
+
+                $sql_pic = "INSERT INTO pictures
+                            SET picture_name = :picture_name,
+                                uploaded_date = :uploaded_date";
+                $sth = $this->db->prepare($sql_pic);
+                $sth->bindParam("picture_name", $data['name']);
+                $sth->bindParam("uploaded_date", $currentDateTime);
+                $sth->execute();
+
+                $sth = $this->db->prepare("SELECT picture_id FROM pictures WHERE picture_name = :picture_name");
+                $sth->bindParam("picture_name", $data['name']);
+                $sth->execute();
+                $picture_id = $sth->fetchObject()->picture_id;
+        }
+
+        $input = $request->getParsedBody();
+        $sql_deal = "UPDATE deals
+                     SET title = :title,
+                         store_id = :store_id,
+                         description = :description,
+                         category_id = :category_id,
+                         expiration_date = :expiration_date,
+                         posted_date = :posted_date,
+                         updated_date = :updated_date,
+                         picture_id = :picture_id
+                     WHERE deal_id = :deal_id";
+        $sth = $this->db->prepare($sql_deal);
+        $sth->bindValue("title", ($input['title'] == null ? $deal->title : $input['title']));
+        $sth->bindValue("store_id", ($input['store_id'] == null ? $deal->store_id : $input['store_id']));
+        $sth->bindValue("description", ($input['description'] == null ? $deal->description : $input['description']));
+        $sth->bindValue("category_id", ($input['category_id'] == null ? $deal->category_id : $input['category_id']));
+        $sth->bindValue("expiration_date", ($input['expiration_date'] == null ? $deal->expiration_date : $input['expiration_date']));
+        $sth->bindParam("posted_date", $currentDateTime);
+        $sth->bindParam("updated_date", $currentDateTime);
+        $sth->bindValue("picture_id", ($input['picture_id'] == null ? $deal->picture_id : $picture_id);
+        $sth->execute();
+
+        return $this->response->withJson($input); //?
     });
 
 
 // Add New Deal
     $app->post('/api/newdeal', function ($request, $response, $args) {
-	$input = $request->getParsedBody();
-	$sql = "INSERT INTO deals
-		SET title = :title,
-		    store_id = :store_id,
-		    description = :description,
-		    category_id = :category_id,
-		    expiration_date = :expiration_date,
-		    posted_date = :posted_date,
-		    updated_date = :updated_date"; //pictures?
-	$sth = $this->db->prepare($sql);
-	$sth->bindParam("title", $input['title']);
-	$sth->bindParam("store_id", $input['store_id']);
-	$sth->bindParam("description", $input['description']);
-	$sth->bindParam("category_id", $input['category_id']);
-	$sth->bindParam("expiration_date", $input['expiration_date']);
-	$currentDateTime = date('Y-m-d H:i:s');
-	$sth->bindParam("posted_date", $currentDateTime);
-	$sth->bindParam("updated_date", $currentDateTime); //pictures?
-	$sth->execute();
-	//$input['deal_id'] = $this->db->lastInsertId();
-	$outputSql = "SELECT deal_id, username, title, store, description, category, expiration_date, posted_date, deals.updated_date, path_to_file
-		      FROM deals, users, categories, stores, pictures
-		      WHERE deals.user_id = users.user_id
-		      AND deals.category_id = categories.category_id
-		      AND deals.store_id = stores.store_id
-		      AND deals.deal_id = pictures.deal_id
-		      ORDER BY posted_date DESC
-		      LIMIT 1";
-	$output = $this->db->prepare($outputSql);
-	$output->execute();
-	$return = $output->fetchObject();
-        return $this->response->withJson($return);
+        $storage = new \Upload\Storage\FileSystem('./pictures');
+        $file = new \Upload\File('image', $storage);
+
+        // Optionally you can rename the file on upload
+        $new_filename = uniqid();
+        $file->setName($new_filename);
+
+        // Validate file upload
+        $file->addValidations(array(
+                // Ensure file is of type "image/png" or "image/jpeg"
+                new \Upload\Validation\Mimetype('image/png', 'image/jpeg')),
+
+                // Ensure file is no larger than 5M (use "B", "K", M", or "G")
+                new \Upload\Validation\Size('5M')
+        ));
+
+        // Access data about the file that has been uploaded
+        $data = array(
+                'name'       => $file->getNameWithExtension(),
+                'extension'  => $file->getExtension(),
+                'mime'       => $file->getMimetype(),
+                'size'       => $file->getSize(),
+                'md5'        => $file->getMd5(),
+                'dimensions' => $file->getDimensions()
+        );
+
+        // Try to upload file
+        try {
+                // Success!
+                $file->upload();
+        } catch (\Exception $e) {
+                // Fail!
+                $errors = $file->getErrors();
+        }
+
+        $currentDateTime = date('Y-m-d H:i:s');
+
+        $sql_pic = "INSERT INTO pictures
+                    SET picture_name = :picture_name,
+                        uploaded_date = :uploaded_date";
+        $sth = $this->db->prepare($sql_pic);
+        $sth->bindParam("picture_name", $data['name']);
+        $sth->bindParam("uploaded_date", $currentDateTime);
+        $sth->execute();
+
+        $sth = $this->db->prepare("SELECT picture_id FROM pictures WHERE picture_name = :picture_name");
+        $sth->bindParam("picture_name", $data['name']);
+        $sth->execute();
+        $picture_id = $sth->fetchObject()->picture_id;
+
+        $input = $request->getParsedBody();
+        $sql_deal = "INSERT INTO deals
+                SET title = :title,
+                    store_id = :store_id,
+                    description = :description,
+                    category_id = :category_id,
+                    expiration_date = :expiration_date,
+                    posted_date = :posted_date,
+                    updated_date = :updated_date,
+                    picture_id = :picture_id";
+        $sth = $this->db->prepare($sql_deal);
+        $sth->bindParam("title", $input['title']);
+        $sth->bindParam("store_id", $input['store_id']);
+        $sth->bindParam("description", $input['description']);
+        $sth->bindParam("category_id", $input['category_id']);
+        $sth->bindParam("expiration_date", $input['expiration_date']);
+        $sth->bindParam("posted_date", $currentDateTime);
+        $sth->bindParam("updated_date", $currentDateTime);
+        $sth->bindParam("picture_id", $picture_id);
+        $sth->execute();
+
+        return $this->response->withJson($input); //?
     });
 
 
