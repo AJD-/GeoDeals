@@ -113,7 +113,7 @@
 
 // Edit a Deal
     $app->put('/api/deal/[{deal_id}]', function ($request, $response, $args) {
-        $getDeal = "SELECT deal_id, title, store_id, description, category_id, expiration_date, posted_date, updated_date, picture_name
+        $getDeal = "SELECT deal_id, title, store_id, description, category_id, expiration_date, updated_date, picture_name
                     FROM deals
                     WHERE deal_id = :deal_id";
 
@@ -192,7 +192,6 @@
         $sth->bindValue("description", ($input['description'] == null ? $deal->description : $input['description']));
         $sth->bindValue("category_id", ($input['category_id'] == null ? $deal->category_id : $input['category_id']));
         $sth->bindValue("expiration_date", ($input['expiration_date'] == null ? $deal->expiration_date : $input['expiration_date']));
-        $sth->bindParam("posted_date", $currentDateTime);
         $sth->bindParam("updated_date", $currentDateTime);
         $sth->bindValue("picture_id", ($input['picture_id'] == null ? $deal->picture_id : $picture_id));
         $sth->execute();
