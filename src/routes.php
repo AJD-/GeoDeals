@@ -717,7 +717,6 @@ $app->delete('/api/profile', function ($request, $response, $args) {
 });
 
 
-
 $app->post('/api/stores/search', function ($request, $response, $args) {
     // Provide a State, City, and Store name
     // Endpoint will return a list of 50 potential stores for user to chose from
