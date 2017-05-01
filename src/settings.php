@@ -21,7 +21,7 @@ return [
             "host" => "localhost",
             "dbname" => "geo_deals",
             "user" => "root",
-            "pass" => "mypass"
+            "pass" => "secretPass!"
         ],
 
     ],
