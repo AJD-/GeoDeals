@@ -1,6 +1,7 @@
 <?php
 $API_HOST = "https://api.yelp.com";
 $SEARCH_PATH = "/v3/businesses/search";
+$BEARER_TOKEN = $_SERVER["BEARER_TOKEN"];
 
 // Magically fixes everything -- don't remove this line
 header('Access-Control-Allow-Origin: *');
@@ -718,8 +719,53 @@ $app->delete('/api/profile', function ($request, $response, $args) {
 
 
 $app->post('/api/stores/search', function ($request, $response, $args) {
+    // Provide a State, City, and Store name
+    // Endpoint will return a list of 50 potential stores for user to chose from
 
+    // Example utilization: POST json
+    // {
+    //     "state": "Texas",
+    //     "city": "Dallas",
+    //     "store": "target"
+    // }
 
+    $input = $request->getParsedBody();
+
+    $state = $input['state'];
+    $city = $input['city'];
+    $store = $input['store'];
+    $location = $city . ", " . $state;
+
+    $url_params = array();
+    $url_params['limit'] = 50;
+
+    if($city && $store){
+        try{
+            $url_params['term'] = $store;
+            $url_params['location'] = $location;
+
+            $store_list = yelp_request($GLOBALS['BEARER_TOKEN'], $GLOBALS['API_HOST'], $GLOBALS['SEARCH_PATH'], $url_params);
+            //$pretty_response = json_encode(json_decode($store_list), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            //Uses current to get first element of key,val associative array that does not have a a key and is the only element
+            $store_obj = current(json_decode($store_list));
+        }
+        catch (Exception $e) {
+            echo '{"error":{"text": "Could not connect to yelp API."}}'; 
+        }
+    }
+    else{
+        echo '{"error":{"text": "Error invalid search params."},
+        {"state":"string", "city":"string", "store":"string"}}';
+    }
+
+    // Final returned object
+    $obj = array( 'deals' => [
+    "location" => $location,
+    "store" => $url_params['term'],
+    "store_list" => $store_obj
+    ]);
+
+    return $this->response->withJson($obj);
 });
 
 
@@ -736,9 +782,6 @@ $app->get('/api/deals/search', function ($request, $response, $args) {
     $lat_by_ip = $location_info->lat;
     $lon_by_ip = $location_info->lon;
     $city_by_ip = $location_info->city;
-
-    $bearer_token_env = $_SERVER["BEARER_TOKEN"];
-    //$bearer_token_env = getenv('BEARER_TOKEN', true) ?: getenv('BEARER_TOKEN');
 
     // In the instance that nothing is passed in, grab the city by ip and display a range of deals
     //SELECT * FROM deals WHERE store_id LIKE '%$city_by_ip%';
@@ -811,8 +854,6 @@ $app->post('/api/deals/search', function ($request, $response, $args) {
     $lon_by_ip = $location_info->lon;
     $city_by_ip = $location_info->city;
 
-    $bearer_token_env = $_SERVER["BEARER_TOKEN"];
-
     $url_params = array();
     $url_params['limit'] = 50;
     //$url_params['offset'] = 40; could be utilized for iteration through business limit
@@ -853,7 +894,7 @@ $app->post('/api/deals/search', function ($request, $response, $args) {
 
     if($business_keyword){
         try{
-            $store_list = yelp_request($bearer_token_env, $GLOBALS['API_HOST'], $GLOBALS['SEARCH_PATH'], $url_params);
+            $store_list = yelp_request($GLOBALS['BEARER_TOKEN'], $GLOBALS['API_HOST'], $GLOBALS['SEARCH_PATH'], $url_params);
             //$pretty_response = json_encode(json_decode($store_list), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
             //Uses current to get first element of key,val associative array that does not have a a key and is the only element
             $store_obj = current(json_decode($store_list));
