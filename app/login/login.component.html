@@ -1,0 +1,17 @@
+<div class="col-md-12 text-center">
+	<form class="form-horizontal" name="signinForm" #signinForm="ngForm" (ngSubmit)="submit()">
+	  <div class="form-group">
+		<label class="sr-only" for="Username">Username</label>
+		<input type="text" [ngClass]="{'.has-error': signin_username.errors && signin_username.touched}" [(ngModel)]="user.username" #signin_username="ngModel" name="username" class="form-control" id="Username" placeholder="Username" [value]="user.username" required>
+	  </div>
+	  <div class="form-group">
+		<label class="sr-only" for="Password">Password</label>
+		<input type="password" [ngClass]="{'.has-error': signin_password.errors && signin_password.touched}" [(ngModel)]="user.password" #signin_password="ngModel" name="password" class="form-control" id="Password" placeholder="Password" [value]="user.password" required>
+	  </div>
+	  <div class="form-group">
+		<button type="submit" class="btn btn-primary btn-block">Sign In</button>
+	  </div>
+	  <hr/>
+	  <a routerLink="/signup">Don't have an account? Signup here!</a>
+	</form>
+</div>

@@ -1,0 +1,35 @@
+/* Master Styles */
+body{
+	margin: 0;
+}
+.header{
+	padding-left: 10px;
+	background-color: darkgrey;
+}
+.main{
+	background-color: grey;
+}
+.flexbox-container {
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    -ms-flex-align: center;
+    -webkit-align-items: center;
+    -webkit-box-align: center;
+    align-items: center;
+    height: auto;
+}
+.header > .logo{
+	margin-top:-75px;
+	margin-left: -15px;
+	height:100px;
+	width:150px;
+}
+.alert ul{
+    padding-left:0px;
+    list-style:none;
+}
+form .ng-invalid.ng-touched{
+    background: pink;
+    border: 1px solid red;
+}
