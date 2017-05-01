@@ -46,6 +46,32 @@ function getEndpointFromRoute($unformatted) {
     return $endpoint;
 }
 
+// Get vote count (upvotes-downvotes) for a deal and update value in table
+function getVoteCount($_this, $deal_id) {
+    // Get number of upvotes
+    $sth = $_this->db->prepare("SELECT COUNT(vote_id) AS upvotes
+                                FROM votes 
+                                WHERE vote_type = 1 
+                                AND deal_id = :deal_id");
+    $sth->bindParam("deal_id", $deal_id);
+    $sth->execute();
+    $upvotes = $sth->fetchObject()->upvotes;
+
+    // Get number of downvotes
+    $sth = $_this->db->prepare("SELECT COUNT(vote_id) AS downvotes
+                                FROM votes 
+                                WHERE vote_type = -1 
+                                AND deal_id = :deal_id");
+    $sth->bindParam("deal_id", $deal_id);
+    $sth->execute();
+    $downvotes = $sth->fetchObject()->downvotes;
+
+    // Calculate vote count
+    $difference = $upvotes-$downvotes;
+    
+    return $difference;
+}
+
 // Log http requests in the 'requests' table
 function logRequest($_request, $_this) {
 
@@ -707,208 +733,6 @@ $app->post('/api/stores/search', function ($request, $response, $args) {
 
 });
 
-
-// Default search for deals
-$app->get('/api/deals/search', function ($request, $response, $args) {
-    $input = $request->getParsedBody();
-
-    $search_term = $input['search_term'];
-    $latitude_by_js = $input['latitude'];
-    $longitude_by_js = $input['longitude'];
-    $radius_in_miles = $input['radius'];
-    $conversion_factor = 1609;
-    $radius_in_meters = ( ((float)$radius_in_miles) * ((float)$conversion_factor) );
-    //$radius_in_meters = 4000;
-
-    // Grab IP address
-    $ip_address = $_SERVER['REMOTE_ADDR'];
-
-    // Get zip based on IP address
-    $location_info = getLocation($ip_address);
-    $zip = $location_info->zip;
-    $lat_by_ip = $location_info->lat;
-    $lon_by_ip = $location_info->lon;
-    $city_by_ip = $location_info->city;
-
-    $bearer_token_env = $_SERVER["BEARER_TOKEN"];
-    //$bearer_token_env = getenv('BEARER_TOKEN', true) ?: getenv('BEARER_TOKEN');
-
-    $url_params = array();
-    
-    // In this instance, it should return everythin in the dallas area in our database
-
-    $url_params = array();
-    $url_params['latitude'] = $lat_by_ip;
-    $url_params['longitude'] = $lon_by_ip;
-    $url_params['radius'] = 40000;
-
-    // In the instance that nothing is passed in, grab the city by ip and display a range of deals
-    //SELECT * FROM deals WHERE store_id LIKE '%$city_by_ip%';
-    $find = "SELECT * FROM deals WHERE store_id LIKE '%$city_by_ip%'";
-    try {
-        $db = $this->db;
-        $stmt = $db->prepare($find);
-        //$stmt->bindParam("store_id_implode", $store_id_implode);
-        $stmt->execute();
-        $returned_deals = $stmt->fetchAll();
-        $db = null;
-        $final_deals = null;
-
-        if ($returned_deals) {
-            $final_deals = $returned_deals;
-        }
-    } catch (PDOException $e) {
-        echo '{"error":{"text": "Error during location gathering"}}';
-    }
-
-    //
-    $obj = array( 'deals' => [
-    "term" => $url_params['term'],
-    "lat" => $url_params['latitude'],
-    "lon" => $url_params['longitude'],
-    "radius" => $url_params['radius'],
-    "store_id_implode" => $store_id_implode,
-    "final_deals" => $final_deals
-    ]);
-    return $this->response->withJson($obj);
-});
-
-
-// Search Deals
-$app->post('/api/deals/search', function ($request, $response, $args) {
-    $input = $request->getParsedBody();
-
-    $search_term = $input['search_term'];
-    $latitude_by_js = $input['latitude'];
-    $longitude_by_js = $input['longitude'];
-    $radius_in_miles = $input['radius'];
-    $conversion_factor = 1609;
-    $radius_in_meters = ( ((float)$radius_in_miles) * ((float)$conversion_factor) );
-    //$radius_in_meters = 4000;
-
-    // Grab IP address
-    $ip_address = $_SERVER['REMOTE_ADDR'];
-
-    // Get zip based on IP address
-    $location_info = getLocation($ip_address);
-    $zip = $location_info->zip;
-    $lat_by_ip = $location_info->lat;
-    $lon_by_ip = $location_info->lon;
-    $city_by_ip = $location_info->city;
-
-    $bearer_token_env = $_SERVER["BEARER_TOKEN"];
-    //$bearer_token_env = getenv('BEARER_TOKEN', true) ?: getenv('BEARER_TOKEN');
-
-    $url_params = array();
-
-    // If search terms are provided by JS
-    if($search_term && $latitude_by_js && $longitude_by_js && $radius_in_meters){
-        $url_params['term'] = $search_term;
-        $url_params['latitude'] = $latitude_by_js;
-        $url_params['longitude'] = $longitude_by_js;
-        $url_params['radius'] = $radius_in_meters;
-    } // If search terms are provided by browser
-    else if ($search_term && $lat_by_ip && $lon_by_ip && $radius_in_meters){
-        $url_params = array();
-        $url_params['term'] = $search_term;
-        $url_params['latitude'] = $lat_by_ip;
-        $url_params['longitude'] = $lon_by_ip;
-        $url_params['radius'] = $radius_in_meters;
-    }
-    else{
-        echo '{"error":{"text": "Error invalid search params."},
-        {"search_term":"string", "latitude":"number", "longitude": "number", "radius": "number"}}';
-    }
-
-
-    try{
-        $store_list = yelp_request($bearer_token_env, $GLOBALS['API_HOST'], $GLOBALS['SEARCH_PATH'], $url_params);
-        //$pretty_response = json_encode(json_decode($store_list), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-        //Uses current to get first element of key,val associative array that does not have a a key and is the only element
-        $store_obj = current(json_decode($store_list));
-    }catch (Exception $e) {
-        echo '{"error":{"text": "Could not connect to yelp API."}}'; 
-    }
-
-    // Will contain a list of store ids
-    $store_id_list = array();
-    foreach($store_obj as $store) {
-        array_push($store_id_list, $store->id);
-    }
-
-    $store_id_implode = "('" . implode("','",$store_id_list) . "')";
-
-    
-    //SELECT * FROM deals WHERE store_id IN ('best-buy-dallas-2','target-dallas');
-    //$find = "SELECT * FROM stores WHERE zip_code IN (:store_id_implode)";
-    $find = "SELECT * FROM deals WHERE store_id IN $store_id_implode";
-    try {
-        $db = $this->db;
-        $stmt = $db->prepare($find);
-        //$stmt->bindParam("store_id_implode", $store_id_implode);
-        $stmt->execute();
-        $returned_deals = $stmt->fetchAll();
-        $db = null;
-        $final_deals = null;
-
-        if ($returned_deals) {
-            $final_deals = $returned_deals;
-        }
-    } catch (PDOException $e) {
-        echo '{"error":{"text": "Error during location gathering"}}';
-    }
-
-    //
-    $obj = array( 'deals' => [
-    "term" => $url_params['term'],
-    "lat" => $url_params['latitude'],
-    "lon" => $url_params['longitude'],
-    "radius" => $url_params['radius'],
-    "store_id_implode" => $store_id_implode,
-    "final_deals" => $final_deals
-    ]);
-    return $this->response->withJson($obj);
-
-
-    //$zips_in_radius = getZipsInRadius($zip,$radius)->zip_codes;
-    //$zip_arr = array(75231,75214);
-    //$zip_arr = array('75231','75214');
-
-    //$zip_implode = implode(',',$zip_arr);
-    //$zip_implode = "(" . implode(',',$zip_arr) . ")";
-
-
-    // array(
-    // "deal_id"=> 1,
-    // "username"=> "rhallmark",
-    // "title"=> "Half off T-Shirts",
-    // "store"=> "Target",
-    // "description"=> "Half off kids shirt at target",
-    // "category"=> "Clothing"
-    // ),
-    // array(
-    // "deal_id"=> 2,
-    // "username"=> "russellrocks",
-    // "title"=> "20% off pots",
-    // "store"=> "Walmart",
-    // "description"=> "Get all the pots!",
-    // "category"=> "Kitchen"
-    // ),
-    // array(
-    // "deal_id"=> 3,
-    // "username"=> "kellenrocks",
-    // "title"=> "Buy one get one free pants",
-    // "store"=> "Khols",
-    // "description"=> "I got four pants for free!",
-    //     "category"=> "Clothing"
-    // )],
-
-
-    // "zips_in_radius" => $zip_implode,
-    // "radius"=> $radius,
-    // "final_stores" => $returned_stores
-});
-
 // Get specific deal
 $app->get('/api/deal/[{deal_id}]', function ($request, $response, $args) {
     $obj = array(
@@ -977,6 +801,9 @@ $app->post('/api/vote', function ($request, $response, $args) {
     $sth->bindParam("deal_id", $input['deal_id']);
     $success = $sth->execute();
     $vote = $sth->fetchObject();
+
+    $vote_type = $input['vote_type'];
+    $deal_id = $input['deal_id'];
     
     // If query executes successfully (all input args are valid)
     if($success) {
@@ -989,11 +816,14 @@ $app->post('/api/vote', function ($request, $response, $args) {
                             deal_id = :deal_id,
                             vote_date = :vote_date";
             $sth = $this->db->prepare($addVote);
-            $sth->bindParam("vote_type", $input['vote_type']);
+            $sth->bindParam("vote_type", $vote_type);
             $sth->bindParam("user_id", $user_id);
-            $sth->bindParam("deal_id", $input['deal_id']);
+            $sth->bindParam("deal_id", $deal_id);
             $sth->bindParam("vote_date", date('Y-m-d H:i:s'));
             $sth->execute();
+
+            // Starting vote is 0 because no vote existed before
+            $ogVoteType = 0;            
         }
         // If user has already voted on current deal
         // Update existing entry in votes table with vote_type
@@ -1004,12 +834,27 @@ $app->post('/api/vote', function ($request, $response, $args) {
                          WHERE user_id = :user_id
                          AND deal_id = :deal_id";
             $sth = $this->db->prepare($editVote);
-            $sth->bindParam("vote_type", $input['vote_type']);
+            $sth->bindParam("vote_type", $vote_type);
             $sth->bindParam("user_id", $user_id);
-            $sth->bindParam("deal_id", $input['deal_id']);
+            $sth->bindParam("deal_id", $deal_id);
             $sth->bindParam("vote_date", date('Y-m-d H:i:s'));
             $sth->execute();
+
+            // Get starting vote type from votes table
+            $ogVoteType = $vote->vote_type;
         }
+
+        // Get amount to adjust vote total by based on new vote
+        $voteAdjustment = -1 * $ogVoteType + $vote_type;
+        
+        // Update vote_count in deals table
+        $adjustVoteCountSql = "UPDATE deals
+                               SET vote_count = vote_count + :voteAdjustment
+                               WHERE deal_id = :deal_id";
+        $sth = $this->db->prepare($adjustVoteCountSql);
+        $sth->bindParam("voteAdjustment", $voteAdjustment);
+        $sth->bindParam("deal_id", $deal_id);
+        $sth->execute();
     }
 
     return $this->response->withJson(array("rows affected" => $sth->rowCount()));
@@ -1021,26 +866,8 @@ $app->get('/api/votes/[{deal_id}]', function ($request, $response, $args) {
     // Log http request
     logRequest($request, $this);
 
-    // Get number of upvotes
-    $sth = $this->db->prepare("SELECT COUNT(vote_id) AS upvotes
-                               FROM votes 
-                               WHERE vote_type = 1 
-                               AND deal_id = :deal_id");
-    $sth->bindParam("deal_id", $args['deal_id']);
-    $sth->execute();
-    $upvotes = $sth->fetchObject()->upvotes;
-
-    // Get number of downvotes
-    $sth = $this->db->prepare("SELECT COUNT(vote_id) AS downvotes
-                               FROM votes 
-                               WHERE vote_type = 0 
-                               AND deal_id = :deal_id");
-    $sth->bindParam("deal_id", $args['deal_id']);
-    $sth->execute();
-    $downvotes = $sth->fetchObject()->downvotes;
-
     // Calculate vote count
-    $difference = $upvotes-$downvotes;
+    $difference = getVoteCount($this, $args['deal_id']);
     return $this->response->withJson(array("votes" => $difference));
 });
 
