@@ -53,7 +53,7 @@ export class UserRepository {
         return this.http
             .post(this._signInUrl, user)
             .toPromise()
-            .then(x => x.json().data as User)
+            .then(x => console.log(x))
             .catch(x => x.message);
     }
 }

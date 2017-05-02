@@ -18,6 +18,7 @@ export class AddDealComponent {
     private addedStore: boolean = false;
     private store: any;
     private currentDate: any;
+    private formData: FormData;
 
     constructor(private router: Router,
         private route: ActivatedRoute,
@@ -43,7 +44,8 @@ export class AddDealComponent {
     }
 
     submit() {
-        console.log(this.deal);
+        this.formData.append('formdata', JSON.stringify(this.deal));
+        console.log(this.formData);
         this.dealRepository.add(this.deal)
             .then(x => this.goToDealDetail('Deal Submitted'));
     }
@@ -85,5 +87,14 @@ export class AddDealComponent {
         this.store = store;
         console.log("Added store id: " + this.deal.store_id + " to deal.");
         this.addedStore = true;
+    }
+
+    fileChange(event) {
+        let fileList: FileList = event.target.files;
+        if (fileList.length > 0) {
+            let file: File = fileList[0];
+            this.formData = new FormData();
+            this.formData.append('image', file, file.name);
+        }
     }
 }

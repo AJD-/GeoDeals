@@ -31,9 +31,12 @@ export class DealRepository {
             .catch(x => x.message);
     }
 
-    public add(deal: Deal): Promise<Deal> {
+    public add(formData): Promise<Deal> {
+        let headers = new Headers();
+        headers.append('Content-Type', 'multipart/form-data');
+        let options = new RequestOptions({ headers: headers });
         return this.http
-            .post(this._apiPostDealUrl, deal)
+            .post(this._apiPostDealUrl, formData, options)
             .toPromise()
             .then(x => x.json().data as Deal)
             .catch(x => x.message);

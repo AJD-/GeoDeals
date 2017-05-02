@@ -72,24 +72,14 @@
             <p class="store-left col-xs-6">Phone: {{ store.display_phone }}</p>
         </div>
     </form>
-    <form name="dealForm" #dealForm="ngForm" class="form-horizontal" (ngSubmit)="submit()">
+    <form name="dealForm" action="https://54.70.252.84/api/deal" #dealForm="ngForm" class="form-horizontal" (ngSubmit)="submit()" enctype="multipart/form-data">
         <div class="form-group">
             <label for="inputPicture" class="col-sm-2 control-label">Picture:</label>
             <label class="btn btn-default btn-file col-sm-10 pictureUp">
                 Take a Picture or Choose from file
-                <input type="file" accept="image/*" [(ngModel)]="deal.image" #deal_image="ngModel" name="image" capture hidden>
+                <input type="file" accept="image/*" (change)="fileChange($event)" name="image" capture hidden>
                 <span class="glyphicon glyphicon-folder-open"></span>
             </label>
-            <div *ngIf="deal_image.errors && deal_image.touched" class="alert alert-danger" role="alert">
-                <ul>
-                    <li [hidden]="!deal_image.errors.required">
-                        Picture is required
-                    </li>
-                    <li [hidden]="!deal_image.errors.accept">
-                        Invalid file type
-                    </li>
-                </ul>
-            </div>
         </div>
         <div class="form-group">
             <label for="inputTitle" class="col-sm-2 control-label">Title:</label>
