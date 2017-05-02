@@ -13,6 +13,7 @@ export class LoginComponent {
 	@Output() titleUpdated : EventEmitter<string> = new EventEmitter();
     title: string;
     user: any = {};
+    error: any;
 
     constructor(private router: Router,
         private route: ActivatedRoute,
@@ -24,7 +25,10 @@ export class LoginComponent {
     submit() {
         this.userRepository.signin(this.user)
             .then(x => {
-                this.goToFeed(`User logged in`);
+                if (localStorage.getItem('jwt'))
+                    this.goToFeed(`User logged in`);
+                else
+                    this.error = localStorage.getItem('error');
             })
             .catch(x => {
                 this.loginError("Invalid Username or password");

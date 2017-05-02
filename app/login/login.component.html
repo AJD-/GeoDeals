@@ -8,6 +8,13 @@
 		<label class="sr-only" for="Password">Password</label>
 		<input type="password" [ngClass]="{'.has-error': signin_password.errors && signin_password.touched}" [(ngModel)]="user.password" #signin_password="ngModel" name="password" class="form-control" id="Password" placeholder="Password" [value]="user.password" required>
 	  </div>
+      <div *ngIf="error" class="alert alert-danger" role="alert">
+          <ul>
+              <li>
+                  {{error}}
+              </li>
+          </ul>
+      </div>
 	  <div class="form-group">
 		<button type="submit" class="btn btn-primary btn-block">Sign In</button>
 	  </div>
