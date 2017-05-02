@@ -759,12 +759,31 @@ $app->post('/api/stores/search', function ($request, $response, $args) {
     $state = $input['state'];
     $city = $input['city'];
     $store = $input['store'];
+    $latitude_by_js = $input['lat'];
+    $longitude_by_js = $input['long'];
     $location = $city . ", " . $state;
 
     $url_params = array();
     $url_params['limit'] = 50;
 
-    if($city && $store){
+
+    if($latitude_by_js && $longitude_by_js && $store){
+        try{
+            $url_params['term'] = $store;
+            $url_params['latitude'] = $latitude_by_js;
+            $url_params['longitude'] = $longitude_by_js;
+            $url_params['radius'] = 40000;
+
+            $store_list = yelp_request($GLOBALS['BEARER_TOKEN'], $GLOBALS['API_HOST'], $GLOBALS['SEARCH_PATH'], $url_params);
+            //$pretty_response = json_encode(json_decode($store_list), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            //Uses current to get first element of key,val associative array that does not have a a key and is the only element
+            $store_obj = current(json_decode($store_list));
+        }
+        catch (Exception $e) {
+            return '{"error":{"text": "Could not connect to yelp API."}}'; 
+        }
+    }
+    else if(($city && $store) || ($state && $store)){
         try{
             $url_params['term'] = $store;
             $url_params['location'] = $location;
@@ -775,17 +794,16 @@ $app->post('/api/stores/search', function ($request, $response, $args) {
             $store_obj = current(json_decode($store_list));
         }
         catch (Exception $e) {
-            echo '{"error":{"text": "Could not connect to yelp API."}}'; 
+            return '{"error":{"text": "Could not connect to yelp API."}}'; 
         }
     }
     else{
-        echo '{"error":{"text": "Error invalid search params."},
-        {"state":"string", "city":"string", "store":"string"}}';
+        return '{"error":{"text": "Error invalid search params."},
+        {"state":"string", "city":"string", "store":"string", "lat":"number", "long":"number"}}';
     }
 
     // Final returned object
     $obj = array( 'deals' => [
-    "location" => $location,
     "store" => $url_params['term'],
     "store_list" => $store_obj
     ]);
@@ -912,7 +930,7 @@ $app->post('/api/deals/search', function ($request, $response, $args) {
         $url_params['radius'] = $radius_in_meters;
     }
     else{
-        echo '{"error":{"text": "Error invalid search params."},
+        return '{"error":{"text": "Error invalid search params."},
         {"business_keyword":"string", "deal_keyword":"string", "latitude":"number", "longitude": "number", "radius": "number"}}';
     }
 
