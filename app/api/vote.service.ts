@@ -5,7 +5,7 @@ import 'rxjs/add/operator/toPromise';
 
 @Injectable()
 export class VoteService {
-    private _apiUrl = 'api/vote';
+    private _apiUrl = 'https://54.70.252.84/api/vote';
 
     constructor(private http: Http) { }
 
