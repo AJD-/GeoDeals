@@ -43,6 +43,22 @@
 .pictureUp{
     height:50px;
 }
-.form-horizontal {
-    padding-top: 50px;
+.searchBtn{
+    margin-top:10px;
+}
+.rel{
+    position:relative;
+}
+.bottom-right {
+    position:absolute;
+    right: 0;
+    bottom: 0;
+}
+.store-left{
+    margin-right:auto; 
+    margin-left:0;
+    text-align:left;
+}
+#storePreview{
+    margin-top:-15px;
 }

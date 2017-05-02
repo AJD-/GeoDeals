@@ -1,10 +1,83 @@
 <div class="col-md-12 text-center">
+    <form name="locationForm" #locationForm="ngForm" class="form-horizontal" (ngSubmit)="locationSubmit()" novalidate>
+        <div class="form-group">
+            <label for="location" class="col-sm-2 control-label">Location: </label>
+            <div class="col-sm-5">
+                <label for="state" class="control-label">State:</label>
+                <input type="text" [(ngModel)]="loc.state" #loc_state="ngModel" name="state" id="state" required/>
+                <label for="city" class="control-label">City:</label>
+                <input type="text" [(ngModel)]="loc.city" #loc_city="ngModel" name="city" id="city" required/>
+                <button type="button" class="btn btn-default searchBtn"  [disabled]="locationForm.invalid" data-toggle="modal" data-target="#dealloc">Search with Location</button>
+            </div>
+            <div class="col-sm-5">
+                <button class="btn btn-default" data-toggle="modal" data-target="#dealloc" (click)="getLocation()"><span class="glyphicon glyphicon-map-marker"></span> Get My Location</button>
+            </div>
+            <!-- Modal -->
+            <div id="dealloc" class="modal fade" role="dialog">
+                <div class="modal-dialog  modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal">&times;</button>
+                            <h4 class="modal-title">Store Location</h4>
+                        </div>
+                        <div class="modal-body">
+                            <div *ngIf="this.loc.state">
+                                <p>State: {{this.loc.state}}</p>
+                                <p>City: {{this.loc.city}}</p>
+                            </div>
+                            <div *ngIf="this.loc.latitude">
+                                <p>Latitude: {{this.loc.latitude}}</p>
+                                <p>Longitude: {{this.loc.longitude}}</p>
+                            </div>
+                            <label for="searchQuery">Store:</label>
+                            <input id="searchQuery" name="searchQuery" type="text" #searchQuery autofocus />
+                            <button type="submit" class="btn btn-primary" (click)="search(searchQuery.value)">Search</button>
+                            <div *ngFor="let store of stores">
+                                <div class="media thumbnail rel">
+                                    <div class="pull-left">
+                                        <img class="media-object deal-icon" [src]="store.image_url" onError="this.src='/img/default-thumbnail.jpg';" [alt]="store.name"/>
+                                    </div>
+                                    <h1 class="media-heading col-xs-6 store-left">{{ store.name }}</h1>
+                                    <p class="store-left col-xs-6">Rating: {{ store.rating }}/5</p>
+                                    <p class="store-left col-xs-6">Location: {{ store.location.address1 }}, {{ store.location.city }}, {{ store.location.state }}, {{ store.location.zip_code }}</p>
+                                    <p class="store-left col-xs-6">Phone: {{ store.display_phone }}</p>
+                                    <button type="button" (click)="selectedStore(store)" class="btn btn-primary bottom-right">Select Store</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End modal -->
+        </div>
+        <div *ngIf="!addedStore && locationForm.touched" class="alert alert-danger" role="alert">
+            <ul>
+                <li [hidden]="addedStore">
+                    Location is required
+                </li>
+            </ul>
+        </div>
+        <!-- Show what store is currently selected -->
+        <label for="storePreview" class=" pull-left control-label" *ngIf="store">Currently selected store: </label>
+        <div id="storePreview" *ngIf="store" class="media thumbnail rel col-xs-10 col-xs-offset-2">
+            <div class="pull-left">
+                <img class="media-object deal-icon" [src]="store.image_url" onError="this.src='/img/default-thumbnail.jpg';" [alt]="store.name" />
+            </div>
+            <h1 class="media-heading col-xs-6 store-left">{{ store.name }}</h1>
+            <p class="store-left col-xs-6">Rating: {{ store.rating }}/5</p>
+            <p class="store-left col-xs-6">Location: {{ store.location.address1 }}, {{ store.location.city }}, {{ store.location.state }}, {{ store.location.zip_code }}</p>
+            <p class="store-left col-xs-6">Phone: {{ store.display_phone }}</p>
+        </div>
+    </form>
     <form name="dealForm" #dealForm="ngForm" class="form-horizontal" (ngSubmit)="submit()">
         <div class="form-group">
             <label for="inputPicture" class="col-sm-2 control-label">Picture:</label>
             <label class="btn btn-default btn-file col-sm-10 pictureUp">
                 Take a Picture or Choose from file
-                <input type="file" accept="image/*" [(ngModel)]="deal.image" #deal_image="ngModel" name="image" capture hidden required>
+                <input type="file" accept="image/*" [(ngModel)]="deal.image" #deal_image="ngModel" name="image" capture hidden>
                 <span class="glyphicon glyphicon-folder-open"></span>
             </label>
             <div *ngIf="deal_image.errors && deal_image.touched" class="alert alert-danger" role="alert">
@@ -32,9 +105,33 @@
             </div>
         </div>
         <div class="form-group">
+            <label for="inputDate" class="col-sm-2 control-label">Expiration Date:</label>
+            <div class="col-sm-10">
+                <input type="date" [(ngModel)]="deal.expiration_date" #deal_expiration_date="ngModel" name="inputDate" class="form-control" id="inputDate" [min]="currentDate" required>
+                <div *ngIf="deal_expiration_date.errors && deal_expiration_date.touched" class="alert alert-danger" role="alert">
+                    <ul>
+                        <li [hidden]="!deal_expiration_date.required">
+                            Expiration Date is required
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
             <label for="inputCategory" class="col-sm-2 control-label">Category:</label>
             <div class="col-sm-10">
-                <input type="text" [(ngModel)]="deal.category" #deal_category="ngModel" name="category" class="form-control" id="inputCategory" placeholder="Input a category, eg Clothing" required>
+                <select [(ngModel)]="deal.category" #deal_category="ngModel" name="category" class="form-control" id="inputCategory" required>
+                    <option>Food & drink</option>
+                    <option>Sporting goods</option>
+                    <option>Clothes</option>
+                    <option>Books, toys, and games</option>
+                    <option>Yard supplies</option>
+                    <option>Hardware</option>
+                    <option>Electronics</option>
+                    <option>Personal care</option>
+                    <option>Entertainment</option>
+                    <option>Other</option>
+                </select>
                 <div *ngIf="deal_category.errors && deal_category.touched" class="alert alert-danger" role="alert">
                     <ul>
                         <li [hidden]="!deal_category.errors.required">
@@ -44,6 +141,7 @@
                 </div>
             </div>
         </div>
+       
         <div class="form-group">
             <label for="inputDesc" class="col-sm-2 control-label">Description:</label>
             <div class="col-sm-10">
@@ -59,7 +157,7 @@
         </div>
         <div class="form-group">
             <div class="col-sm-12">
-                <button type="submit" name="submit" [disabled]="dealForm.invalid" class="btn btn-primary btn-block">Post</button>
+                <button type="submit" name="submit" [disabled]="dealForm.invalid && addedStore" class="btn btn-primary btn-block">Post</button>
             </div>
         </div>
     </form>

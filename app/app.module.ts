@@ -16,6 +16,7 @@ import { DealRepository } from './api/deal-repository.service';
 import { DealModule } from './deal/deal.module';
 import { UserRepository } from './api/user-repository.service';
 import { VoteService } from './api/vote.service';
+import { LocationService } from './api/location.service';
 
 
 @NgModule({
@@ -48,7 +49,8 @@ import { VoteService } from './api/vote.service';
   providers: [
       DealRepository,
       UserRepository,
-      VoteService
+      VoteService,
+      LocationService
   ],
   bootstrap:    [ AppComponent ]
 })

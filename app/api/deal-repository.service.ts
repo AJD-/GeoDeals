@@ -7,8 +7,7 @@ import { Deal } from './deal';
 @Injectable()
 export class DealRepository {
     private _apiUrl = 'https://54.70.252.84/api/deals/search';
-
-	private _deals: Deal[];
+    private _apiPostDealUrl = 'https://54.70.252.84/api/deal';
 
     constructor(private http: Http){
     }
@@ -34,7 +33,7 @@ export class DealRepository {
 
     public add(deal: Deal): Promise<Deal> {
         return this.http
-            .post(this._apiUrl, deal)
+            .post(this._apiPostDealUrl, deal)
             .toPromise()
             .then(x => x.json().data as Deal)
             .catch(x => x.message);
@@ -42,7 +41,7 @@ export class DealRepository {
 
     public update(deal: Deal): Promise<Deal> {
         return this.http
-            .put(`${this._apiUrl}/${deal.deal_id}`, deal)
+            .put(`${this._apiPostDealUrl}/${deal.deal_id}`, deal)
             .toPromise()
             .then(() => deal)
             .catch(x => x.message);
@@ -50,7 +49,7 @@ export class DealRepository {
 
     public delete(deal: Deal): Promise<void> {
         return this.http
-            .delete(`${this._apiUrl}/${deal.deal_id}`)
+            .delete(`${this._apiPostDealUrl}/${deal.deal_id}`)
             .toPromise()
             .catch(x => x.message);
     }

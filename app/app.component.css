@@ -33,7 +33,18 @@ form .ng-invalid.ng-touched{
     background: pink;
     border: 1px solid red;
 }
+<<<<<<< HEAD
 #logout{
     float: right;
     width: 80px;
+=======
+body {
+    background-color: lightgray;
+}
+#logo-image {
+    display: block;
+    margin: auto;
+    width: 30vh;
+    margin-top: 55vh;
+>>>>>>> b3ceeb7f25cae1e32416a9948b60d7c441a3e3c7
 }

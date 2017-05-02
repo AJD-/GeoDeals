@@ -10,5 +10,5 @@ export class Deal {
     updated_date: string;
     user_id: number;
     imagePath: string;
-    rating: number;
+    vote_count: number;
 }
