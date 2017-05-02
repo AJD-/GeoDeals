@@ -41,7 +41,7 @@ export class DealRepository {
 
     public update(deal: Deal): Promise<Deal> {
         return this.http
-            .put(`${this._apiUrl}/${deal.deal_id}`, deal)
+            .put(`${this._apiPostDealUrl}/${deal.deal_id}`, deal)
             .toPromise()
             .then(() => deal)
             .catch(x => x.message);
@@ -49,7 +49,7 @@ export class DealRepository {
 
     public delete(deal: Deal): Promise<void> {
         return this.http
-            .delete(`${this._apiUrl}/${deal.deal_id}`)
+            .delete(`${this._apiPostDealUrl}/${deal.deal_id}`)
             .toPromise()
             .catch(x => x.message);
     }
