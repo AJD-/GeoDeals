@@ -1017,6 +1017,117 @@ $app->get('/api/deal/[{deal_id}]', function ($request, $response, $args) {
     return $this->response->withJson($deals);
 });
 
+// Edit a Deal
+$app->post('/api/deal/edit/[{deal_id}]', function ($request, $responese, $args) {
+    $current_user_id = getUserIdFromToken($request, $this);
+    $sth = $this->db->prepare("SELECT user_id FROM deals WHERE deal_id = :deal_id");
+    $sth->bindParam("deal_id", $args['deal_id']);
+    $sth->execute();
+    $user_id = $sth->fetchObject()->user_id;
+
+    if ($current_user_id != $user_id) {
+	echo '{"error":{"text": "You do not have permission to edit."}}';
+    }
+    else {
+	$getDeal = "SELECT deal_id, title, store_id, description, category_id, expiration_date, picture_id
+                    FROM deals
+                    WHERE deal_id = :deal_id";
+
+	$sth = $this->db->prepare($getDeal);
+	$sth->bindParam("deal_id", $args['deal_id']);
+	$sth->execute();
+	$deal = $sth->fetchObject();
+
+	$picture_id = $deal->picture_id;
+	$currentDateTime = date('Y-m-d H:i:s');
+
+	if ($_FILES['image']['name'] != null) {
+	    $storage = new \Upload\Storage\FileSystem('./deal_picture');
+	    $file = new \Upload\File('image', $storage);
+
+	    // Optionally you can rename the file on upload
+	    $new_filename = uniqid();
+	    $file->setName($new_filename);
+
+	    // Validate file upload
+	    $file->addValidations(array(
+		// Ensure file is of type "image/png" or "image/jpeg"
+		new \Upload\Validation\Mimetype(array('image/png', 'image/jpeg')),
+
+		// Ensure file is no larger than 5M (use "B", "K", M", or "G")
+		new \Upload\Validation\Size('5M')
+	    ));
+
+	    // Access data about the file that has been uploaded
+	    $data = array(
+		'name'       => $file->getNameWithExtension(),
+		'extension'  => $file->getExtension(),
+		'mime'       => $file->getMimetype(),
+		'size'       => $file->getSize(),
+		'md5'        => $file->getMd5(),
+		'dimensions' => $file->getDimensions()
+	    );
+
+	    // Try to upload file
+	    try {
+		// Success!
+		$file->upload();
+	    } catch (\Exception $e) {
+		// Fail!
+		$errors = $file->getErrors();
+	    }
+
+	    $sql_pic = "INSERT INTO pictures
+			SET picture_name = :picture_name,
+			    size = :size,
+			    uploaded_date = :uploaded_date";
+	    $sth = $this->db->prepare($sql_pic);
+	    $sth->bindParam("picture_name", $data['name']);
+	    $sth->bindParam("size", $data['size']);
+	    $sth->bindParam("uploaded_date", $currentDateTime);
+	    $sth->execute();
+
+	    $sth = $this->db->prepare("SELECT picture_id FROM pictures WHERE picture_name = :picture_name");
+	    $sth->bindParam("picture_name", $data['name']);
+	    $sth->execute();
+	    $picture_id = $sth->fetchObject()->picture_id;
+	}
+
+	$input = $request->getParsedBody();
+	$sql_deal = "UPDATE deals
+		     SET title = :title,
+			 store_id = :store_id,
+			 description = :description,
+			 category_id = :category_id,
+			 expiration_date = :expiration_date,
+			 updated_date = :updated_date,
+			 picture_id = :picture_id
+		     WHERE deal_id = :deal_id";
+	$sth = $this->db->prepare($sql_deal);
+	$sth->bindParam("deal_id", $args['deal_id']);
+	$sth->bindValue("title", ($input['title'] == null ? $deal->title : $input['title']));
+	$sth->bindValue("store_id", ($input['store_id'] == null ? $deal->store_id : $input['store_id']));
+	$sth->bindValue("description", ($input['description'] == null ? $deal->description : $input['description']));
+	$sth->bindValue("category_id", ($input['category_id'] == null ? $deal->category_id : $input['category_id']));
+	$sth->bindValue("expiration_date", ($input['expiration_date'] == null ? $deal->expiration_date : $input['expiration_date']));
+	$sth->bindParam("updated_date", $currentDateTime);
+	$sth->bindParam("picture_id", $picture_id);
+	$sth->execute();
+
+	$sth = $this->db->prepare("SELECT deal_id, username, title, store, description, category, expiration_date, posted_date, deals.updated_date, picture_name
+				   FROM deals, users, categories, stores, pictures
+				   WHERE deals.user_id = users.user_id
+				   AND deals.category_id = categories.category_id
+				   AND deals.store_id = stores.store_id
+				   AND deals.picture_id = pictures.picture_id
+				   AND deal_id = :deal_id");
+	$sth->bindParam("deal_id", $args['deal_id']);
+	$sth->execute();
+	$output = $sth->fetchObject();
+	return $this->response->withJson($output);
+    }
+});
+
 // Add New Deal
 $app->post('/api/deal', function ($request, $response, $args) {
     $storage = new \Upload\Storage\FileSystem('./deal_picture');
