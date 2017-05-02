@@ -12,9 +12,9 @@
 		<p class="media-description col-xs-6">{{ deal.description }}</p>
         <p class="media-description col-xs-6">Expires: {{ deal.expiration_date }}</p>
 		<div class="pull-right voteContainer">
-			<span [style.color]="isUpvoted(i)" (click)="upvote(i)" class="glyphicon glyphicon-menu-up"></span><br/>
-			<p class="rank">{{ deal.rating || 0}}</p><br/>
-			<span [style.color]="isDownvoted(i)" (click)="downvote(i)" class="glyphicon glyphicon-menu-down"></span>
+			<span [style.color]="isUpvoted(i)" (click)="upvote(i, deal.deal_id)" class="glyphicon glyphicon-menu-up"></span><br/>
+			<p class="rank">{{ deal.vote_count || 0}}</p><br/>
+			<span [style.color]="isDownvoted(i)" (click)="downvote(i, deal.deal_id)" class="glyphicon glyphicon-menu-down"></span>
 		</div>
 	</div>
 </div>

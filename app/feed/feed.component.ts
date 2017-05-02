@@ -17,7 +17,7 @@ export class FeedComponent {
 	@Output() titleUpdated : EventEmitter<string> = new EventEmitter();
 	title : string;
     deals: Deal[];
-    vote: Vote;
+    vote: Vote = new Vote;
 	uv : boolean[];
 	dv : boolean[];
 
@@ -38,20 +38,20 @@ export class FeedComponent {
                 }
             });		
 	}
-	upvote(index : number){
+	upvote(index : number, deal_id: number){
 		if(!this.uv[index]){
 			if(this.dv[index]){
-				this.downvote(index);
+                this.downvote(index, deal_id);
 			}
-            this.deals[index].rating++; //uv: send vote type  1, 0 for dv, 2 for unvote
-            this.vote.deal_id = index;
+            this.deals[index].vote_count++; //uv: send vote type  1, 0 for dv, 2 for unvote
+            this.vote.deal_id = deal_id;
             this.vote.vote_type = 1;
             this.voteService.vote(this.vote)
                 .then(x => console.log("Voted up"));
 			this.uv[index] = true;
 		}else{
-            this.deals[index].rating--;
-            this.vote.deal_id = index;
+            this.deals[index].vote_count--;
+            this.vote.deal_id = deal_id;
             this.vote.vote_type = 0;
             this.voteService.vote(this.vote)
                 .then(x => console.log("Unvoted"));
@@ -65,20 +65,20 @@ export class FeedComponent {
 			return "";
 		}
 	}
-	downvote(index : number){
+	downvote(index : number, deal_id: number){
 		if(!this.dv[index]){
 			if(this.uv[index]){
-				this.upvote(index);
+                this.upvote(index, deal_id);
 			}
-            this.deals[index].rating--;
-            this.vote.deal_id = index;
+            this.deals[index].vote_count--;
+            this.vote.deal_id = deal_id;
             this.vote.vote_type = -1;
             this.voteService.vote(this.vote)
                 .then(x => console.log("Voted down"));
 			this.dv[index] = true;
 		}else{
-            this.deals[index].rating++;
-            this.vote.deal_id = index;
+            this.deals[index].vote_count++;
+            this.vote.deal_id = deal_id;
             this.vote.vote_type = 0;
             this.voteService.vote(this.vote)
                 .then(x => console.log("Unvoted"));
