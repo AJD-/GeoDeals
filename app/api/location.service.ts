@@ -12,8 +12,9 @@ export class LocationService {
         return this.http.post(this._apiUrl, loc)
             .toPromise()
             .then(x => {
+                console.log(x);
                 let body = x.json();
-                return (body.deals) as any[];
+                return (body.deals.store_list) as any[];
             }).catch(x => x.message);
     }
 }
