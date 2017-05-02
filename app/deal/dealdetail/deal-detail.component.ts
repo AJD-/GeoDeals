@@ -1,6 +1,8 @@
-import { Component, Input } from '@angular/core';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Component, Input, OnInit } from '@angular/core';
+import { Router, ActivatedRoute, Params } from '@angular/router';
+import { Deal } from '../../api/deal'
 import { DealRepository } from '../../api/deal-repository.service';
+import 'rxjs/add/operator/switchMap';
 
 @Component({
     selector: 'dealdetail',
@@ -17,21 +19,8 @@ export class DealDetailComponent {
                 private dealRepository: DealRepository){}
 
 	ngOnInit() {
-        var onLoad = (data) => {
-            this.deal = data;
-            this.title = this.deal.title.toString();				
-        };
-
-		this.route.params.subscribe(params => {
-			if(params['id'] !== undefined) {
-                this.dealRepository.get(+params['id'])
-                    .then(onLoad);
-			} else {
-				this.deal = {
-				};
-				this.title = 'New Deal';
-			}
-		});
-	}
-
+        this.route.params
+            .switchMap((params: Params) => this.dealRepository.get(+params['id']))
+            .subscribe(deal => this.deal = deal);
+    }
 }
