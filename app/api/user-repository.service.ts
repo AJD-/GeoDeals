@@ -8,6 +8,8 @@ export class UserRepository {
     private _apiUrl = 'https://54.70.252.84/api/profile';
     private _signInUrl = 'https://54.70.252.84/api/signin';
 
+    private token: string;
+
 	constructor(private http: Http) {}
 
 	listAll() : Promise<User[]>{
@@ -30,7 +32,14 @@ export class UserRepository {
 		return this.http
 			.post(this._apiUrl, user)
 			.toPromise()
-			.then(x => x.json().data as User)
+            .then(x => {
+                if (x.json().token) {
+                    this.token = x.json().token;
+                    localStorage.setItem('jwt', this.token);
+                } else {
+                    localStorage.setItem('error', (x.json().error.text));
+                }
+            })
 			.catch(x => x.message);
 	}
 	
@@ -53,7 +62,14 @@ export class UserRepository {
         return this.http
             .post(this._signInUrl, user)
             .toPromise()
-            .then(x => console.log(x))
+            .then(x => {
+                if (x.json().token) {
+                    this.token = x.json().token;
+                    localStorage.setItem('jwt',this.token);
+                } else {
+                    localStorage.setItem('error', (x.json().error.text));
+                }
+            })
             .catch(x => x.message);
     }
 }
