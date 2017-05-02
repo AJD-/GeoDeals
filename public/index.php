@@ -1,4 +1,5 @@
 <?php
+
 if (PHP_SAPI == 'cli-server') {
     // To help the built-in PHP dev server, check if the request was actually for
     // something which should probably be served as a static file
@@ -9,6 +10,7 @@ if (PHP_SAPI == 'cli-server') {
     }
 }
 
+
 require __DIR__ . '/../vendor/autoload.php';
 
 session_start();
@@ -17,14 +19,31 @@ session_start();
 $settings = require __DIR__ . '/../src/settings.php';
 $app = new \Slim\App($settings);
 
+$container = $app->getContainer();
+
+$container['view'] = function ($container){
+	$view = new \Slim\Views\Twig(__DIR__ . '/../resources/views', [
+		'cache => false',
+	]);
+
+	$view->addExtension( new \Slim\Views\TwigExtension(
+		$container->router,
+		$container->request->getUri()
+	));
+
+	return $view;
+};
+
 // Set up dependencies
 require __DIR__ . '/../src/dependencies.php';
 
 // Register middleware
 require __DIR__ . '/../src/middleware.php';
 
+
 // Register routes
 require __DIR__ . '/../src/routes.php';
 
 // Run app
 $app->run();
+
