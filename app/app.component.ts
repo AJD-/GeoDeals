@@ -16,10 +16,11 @@ export class AppComponent {
 		private router: Router,
         private route: ActivatedRoute
 	){
+		router.events.subscribe((loggedIn) => this.loggedIn = (router.url === "/feed"));
 		this.title = "GeoDeals";
 	}
 	ngOnInit(){
-		if(this.router.url === '/'){
+		if(this.router.url === '/'){	
 			this.loggedIn = true;
 		}else{
 			this.loggedIn = false;
