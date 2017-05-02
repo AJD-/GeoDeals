@@ -44,8 +44,7 @@ export class AddDealComponent {
     }
 
     submit() {
-        this.formData.append('formdata', JSON.stringify(this.deal));
-        console.log(this.formData);
+        console.log(this.deal);
         this.dealRepository.add(this.deal)
             .then(x => this.goToDealDetail('Deal Submitted'));
     }
@@ -93,8 +92,7 @@ export class AddDealComponent {
         let fileList: FileList = event.target.files;
         if (fileList.length > 0) {
             let file: File = fileList[0];
-            this.formData = new FormData();
-            this.formData.append('image', file, file.name);
+            this.deal.image = file;
         }
     }
 }
