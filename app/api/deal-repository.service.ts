@@ -8,8 +8,6 @@ import { Deal } from './deal';
 export class DealRepository {
     private _apiUrl = 'https://54.70.252.84/api/deals/search';
 
-	private _deals: Deal[];
-
     constructor(private http: Http){
     }
 
