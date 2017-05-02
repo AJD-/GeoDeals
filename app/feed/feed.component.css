@@ -16,7 +16,9 @@
 	display:inline-block;	
 }
 .voteContainer{
-	margin-top:-25px;
+    position:absolute;
+    margin-top:15px;
+    right:0;
 	width: 70px;
 	text-align:center;
 }
@@ -38,4 +40,7 @@
     margin-top: -40px;
     font-size: 100px;
     color: white;
+}
+.rel{
+    position:relative;
 }
