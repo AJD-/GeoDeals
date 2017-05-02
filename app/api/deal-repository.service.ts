@@ -25,7 +25,7 @@ export class DealRepository {
 
     public get(id: number): Promise<Deal> {
         return this.http
-            .get(`${this._apiUrl}/${id}`)
+            .get(`${this._apiPostDealUrl}/${id}`)
             .toPromise()
             .then(x => x.json().data as Deal)
             .catch(x => x.message);
