@@ -1,4 +1,5 @@
 import { Component, ViewEncapsulation } from '@angular/core';
+import { Router, ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app',
@@ -9,9 +10,21 @@ import { Component, ViewEncapsulation } from '@angular/core';
 
 export class AppComponent { 
 	title : string;
+	loggedIn: boolean;
 
-	constructor(){
+	constructor(
+		private router: Router,
+        private route: ActivatedRoute
+	){
+		router.events.subscribe((loggedIn) => this.loggedIn = (router.url === "/feed"));
 		this.title = "GeoDeals";
+	}
+	ngOnInit(){
+		if(this.router.url === '/'){	
+			this.loggedIn = true;
+		}else{
+			this.loggedIn = false;
+		}
 	}
 	handleTitleUpdate(titleFromChild:string):void{
 		this.title = titleFromChild;
