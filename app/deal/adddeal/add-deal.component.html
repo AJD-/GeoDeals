@@ -1,27 +1,49 @@
 <div class="col-md-12 text-center">
-    <form name="locationForm" #locationForm="ngForm" class="form-horizontal">
+    <form name="locationForm" #locationForm="ngForm" class="form-horizontal" (ngSubmit)="locationSubmit()" novalidate>
         <div class="form-group">
             <label for="location" class="col-sm-2 control-label">Location: </label>
             <div class="col-sm-5">
                 <label for="state" class="control-label">State:</label>
-                <input type="text" name="state" id="state" />
+                <input type="text" [(ngModel)]="loc.state" #loc_state="ngModel" name="state" id="state" required/>
                 <label for="city" class="control-label">City:</label>
-                <input type="text" name="city" id="city" />
-                <button type="button" class="btn btn-default searchBtn" data-toggle="modal" data-target="#dealloc">Search with Location</button>
+                <input type="text" [(ngModel)]="loc.city" #loc_city="ngModel" name="city" id="city" required/>
+                <button type="button" class="btn btn-default searchBtn"  [disabled]="locationForm.invalid" data-toggle="modal" data-target="#dealloc">Search with Location</button>
             </div>
             <div class="col-sm-5">
-                <button type="button" class="btn btn-default" data-toggle="modal" data-target="#dealloc"><span class="glyphicon glyphicon-map-marker"></span> Get My Location</button>
+                <button class="btn btn-default" data-toggle="modal" data-target="#dealloc" (click)="getLocation()"><span class="glyphicon glyphicon-map-marker"></span> Get My Location</button>
             </div>
             <!-- Modal -->
             <div id="dealloc" class="modal fade" role="dialog">
-                <div class="modal-dialog">
+                <div class="modal-dialog  modal-lg">
                     <div class="modal-content">
                         <div class="modal-header">
                             <button type="button" class="close" data-dismiss="modal">&times;</button>
                             <h4 class="modal-title">Store Location</h4>
                         </div>
                         <div class="modal-body">
-                            <button class="btn btn-default" type="button" (click)="getLocation()">Get my location</button>
+                            <div *ngIf="this.loc.state">
+                                <p>State: {{this.loc.state}}</p>
+                                <p>City: {{this.loc.city}}</p>
+                            </div>
+                            <div *ngIf="this.loc.latitude">
+                                <p>Latitude: {{this.loc.latitude}}</p>
+                                <p>Longitude: {{this.loc.longitude}}</p>
+                            </div>
+                            <label for="searchQuery">Store:</label>
+                            <input id="searchQuery" name="searchQuery" type="text" #searchQuery autofocus />
+                            <button type="button" class="btn btn-primary" (click)="search(searchQuery.value)">Search</button>
+                            <div *ngFor="let store of stores">
+                                <div class="media thumbnail rel">
+                                    <div class="pull-left">
+                                        <img class="media-object deal-icon" [src]="store.image_url" onError="this.src='/img/default-thumbnail.jpg';" [alt]="store.name">
+                                    </div>
+                                    <h1 class="media-heading col-xs-6 store-left">{{ store.name }}</h1>
+                                    <p class="store-left col-xs-6">Rating: {{ store.rating }}/5</p>
+                                    <p class="store-left col-xs-6">Location: {{ store.location.address1 }}, {{ store.location.city }}, {{ store.location.state }}, {{ store.location.zip_code }}</p>
+                                    <p class="store-left col-xs-6">Phone: {{ store.display_phone }}</p>
+                                    <button (click)="selectedStore(store)" class="btn btn-primary bottom-right">Select Store</button>
+                                </div>
+                            </div>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
