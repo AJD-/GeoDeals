@@ -1036,7 +1036,7 @@ $app->post('/api/deals/search', function ($request, $response, $args) {
 
 // Get specific deal
 $app->get('/api/deal/[{deal_id}]', function ($request, $response, $args) {
-    $sth = $this->db->prepare("SELECT deal_id, username, title, store_id, description, category, expiration_date, posted_date, deals.updated_date, picture_name
+    $sth = $this->db->prepare("SELECT deal_id, username, title, store_id, description, category, expiration_date, posted_date, deals.updated_date, picture_name, vote_count
                                FROM deals, users, categories, pictures
                                WHERE deals.user_id = users.user_id
                                AND deals.category_id = categories.category_id
@@ -1058,6 +1058,9 @@ $app->get('/api/deal/[{deal_id}]', function ($request, $response, $args) {
 
 // Edit a Deal
 $app->post('/api/deal/edit/[{deal_id}]', function ($request, $responese, $args) {
+    // Log http request
+    logRequest($request, $this);
+
     $current_user_id = getUserIdFromToken($request, $this);
     $sth = $this->db->prepare("SELECT user_id FROM deals WHERE deal_id = :deal_id");
     $sth->bindParam("deal_id", $args['deal_id']);
@@ -1168,6 +1171,9 @@ $app->post('/api/deal/edit/[{deal_id}]', function ($request, $responese, $args) 
 
 // Add New Deal
 $app->post('/api/deal', function ($request, $response, $args) {
+    // Log http request
+    logRequest($request, $this);
+
     $storage = new \Upload\Storage\FileSystem('./deal_picture');
     $file = new \Upload\File('image', $storage);
 
