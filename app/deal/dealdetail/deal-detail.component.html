@@ -1,10 +1,13 @@
 <div class="row">
 	<div class="media thumbnail">
+        <button class="btn btn-primary btn-block" id="feed" routerLink="/feed">Feed</button>
 		<h1 class="media-heading">{{ deal?.title }}</h1>
-		<div>
-			<img class="media-object deal-icon" [src]="deal?.imagePath" onError="this.src='/img/default-thumbnail.jpg';" [alt]="deal?.title">
+		<div class="imageContainer">
+			<img class="media-object deal-icon" [src]="'https://54.70.252.84/deal_picture/' + deal?.picture_name" onError="this.src='/img/default-thumbnail.jpg';" [alt]="deal?.title">
 		</div>
 		<p class="media-description">{{ deal?.description }}</p>
+        <br/>
+        <p class="media-description">Expires: {{ deal?.expiration_date }}</p>
         <div class="pull-right voteContainer">
 			<span [style.color]="isUpvoted(i)" (click)="upvote(i, deal?.deal_id)" class="glyphicon glyphicon-menu-up"></span><br/>
 			<p class="rank">{{ deal?.vote_count || 0 }}</p><br/>

@@ -43,7 +43,7 @@ export class DealDetailComponent {
                     }
                     route.params.subscribe(params => {
                         console.log(this.deals.values);
-                        this.deal = this.deals[params['dealid']];
+                        this.deal = this.deals[params['dealid']-1];
                     });
                 }
             });

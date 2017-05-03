@@ -13,9 +13,6 @@ h1 {
     position: relative;
     margin: 0;
     position: absolute;
-	background: whitesmoke;
-	background-blend-mode: difference;
-	filter:alpha(opacity(50%));
     top: 2%;
     left: 50%;
     margin-right: -50%;
@@ -35,4 +32,11 @@ h1 {
 .deal-icon{
 	height:500px;
 	width:959px;
+}
+.imageContainer{
+	margin-top: 50px;
+}
+#feed{
+	float: right;
+    width: 80px;
 }
