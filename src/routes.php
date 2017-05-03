@@ -134,7 +134,7 @@ function isAuthenticated($jwt, $_this){
     try {
         $decoded = JWT::decode($jwt['HTTP_AUTHORIZATION'][0], $key, array('HS256'));
     } catch (UnexpectedValueException $e) {
-        echo $e->getMessage();
+        return false;
     }
 
     if (isset($decoded)) {
@@ -158,9 +158,12 @@ function isAuthenticated($jwt, $_this){
 }
 
 function authError(){
-    echo json_encode([
-        "response" => "Authorization Token Error"
-    ]);
+
+    return '{"error":{"text": "Authorization Token Error"}}'; 
+
+    // return json_encode([
+    //     "response" => "Authorization Token Error"
+    // ]);
 }
 
 function generateToken($user, $user_id, $_this){
@@ -183,7 +186,7 @@ function generateToken($user, $user_id, $_this){
     try {
         $jwt = JWT::encode($payload, $key);
     } catch (Exception $e) {
-        echo json_encode($e);
+        return json_encode($e);
     }
 
     $sql = "INSERT INTO tokens (user_id, token, created_date, expiration_date)
@@ -439,8 +442,10 @@ $app->get('/api/myip', function ($request, $response, $args) {
         return $this->response->withJson(getHeaderInfo());
     }
     else{
-        authError();
+        return '{"error":{"text": "Authorization Token Error"}}'; 
     }
+
+
 });
 
 // Change Password
@@ -467,13 +472,14 @@ $app->post('/api/password', function ($request, $response) {
 // Sign In
 $app->post('/api/signin', function (Request $request, Response $response) {
 
-    $data = $request->getParsedBody();
+    $input = $request->getParsedBody();
+    //$data = $request->getParsedBody();
 
     //$result = file_get_contents('./users.json');
     $users = json_decode($result, true);
 
-    $login = $data['user_login'];
-    $password = $data['user_password'];
+    $login = $input['username'];
+    $password = $input['password'];
 
     $find = "SELECT * FROM users WHERE username = :username";
     try {
@@ -517,9 +523,9 @@ $app->post('/api/signin', function (Request $request, Response $response) {
     }
 
     if (!isset($current_user)) {
-        echo json_encode("No user with that user/password combination");
+        return '{"error":{"text": "No user with that username/password combination"}}'; 
     } else if ($current_user['user_verified'] == 0) {
-        echo json_encode("Please verify email before logging in");
+        return '{"error":{"text": "Please verify email before logging in"}}'; 
     } else {
 
         // Find a corresponding token.
@@ -984,7 +990,7 @@ $app->post('/api/deals/search', function ($request, $response, $args) {
             $final_deals = $returned_deals;
         }
     } catch (PDOException $e) {
-        echo '{"error":{"text": "Error during location gathering"}}';
+        return '{"error":{"text": "Error during location gathering"}}';
     }
 
     // SEO optimize business_keyword
@@ -1013,8 +1019,7 @@ $app->post('/api/deals/search', function ($request, $response, $args) {
     "lon" => $url_params['longitude'],
     "radius" => $url_params['radius'],
     "store_id_implode" => $store_id_implode,
-    "final_deals" => $final_deals,
-    "optimized_deals" => $optimized_deals
+    "final_deals" => $optimized_deals
     ]);
     return $this->response->withJson($obj);
 });
@@ -1051,104 +1056,104 @@ $app->post('/api/deal/edit/[{deal_id}]', function ($request, $responese, $args) 
     $user_id = $sth->fetchObject()->user_id;
 
     if ($current_user_id != $user_id) {
-    echo '{"error":{"text": "You do not have permission to edit."}}';
+    return '{"error":{"text": "You do not have permission to edit."}}';
     }
     else {
-    $getDeal = "SELECT deal_id, title, store_id, description, category_id, expiration_date, picture_id
-                    FROM deals
-                    WHERE deal_id = :deal_id";
+        $getDeal = "SELECT deal_id, title, store_id, description, category_id, expiration_date, picture_id
+                        FROM deals
+                        WHERE deal_id = :deal_id";
 
-    $sth = $this->db->prepare($getDeal);
-    $sth->bindParam("deal_id", $args['deal_id']);
-    $sth->execute();
-    $deal = $sth->fetchObject();
+        $sth = $this->db->prepare($getDeal);
+        $sth->bindParam("deal_id", $args['deal_id']);
+        $sth->execute();
+        $deal = $sth->fetchObject();
 
-    $picture_id = $deal->picture_id;
-    $currentDateTime = date('Y-m-d H:i:s');
+        $picture_id = $deal->picture_id;
+        $currentDateTime = date('Y-m-d H:i:s');
 
-    if ($_FILES['image']['name'] != null) {
-        $storage = new \Upload\Storage\FileSystem('./deal_picture');
-        $file = new \Upload\File('image', $storage);
+        if ($_FILES['image']['name'] != null) {
+            $storage = new \Upload\Storage\FileSystem('./deal_picture');
+            $file = new \Upload\File('image', $storage);
 
-        // Optionally you can rename the file on upload
-        $new_filename = uniqid();
-        $file->setName($new_filename);
+            // Optionally you can rename the file on upload
+            $new_filename = uniqid();
+            $file->setName($new_filename);
 
-        // Validate file upload
-        $file->addValidations(array(
-        // Ensure file is of type "image/png" or "image/jpeg"
-        new \Upload\Validation\Mimetype(array('image/png', 'image/jpeg')),
+            // Validate file upload
+            $file->addValidations(array(
+            // Ensure file is of type "image/png" or "image/jpeg"
+            new \Upload\Validation\Mimetype(array('image/png', 'image/jpeg')),
 
-        // Ensure file is no larger than 5M (use "B", "K", M", or "G")
-        new \Upload\Validation\Size('5M')
-        ));
+            // Ensure file is no larger than 5M (use "B", "K", M", or "G")
+            new \Upload\Validation\Size('5M')
+            ));
 
-        // Access data about the file that has been uploaded
-        $data = array(
-        'name'       => $file->getNameWithExtension(),
-        'extension'  => $file->getExtension(),
-        'mime'       => $file->getMimetype(),
-        'size'       => $file->getSize(),
-        'md5'        => $file->getMd5(),
-        'dimensions' => $file->getDimensions()
-        );
+            // Access data about the file that has been uploaded
+            $data = array(
+            'name'       => $file->getNameWithExtension(),
+            'extension'  => $file->getExtension(),
+            'mime'       => $file->getMimetype(),
+            'size'       => $file->getSize(),
+            'md5'        => $file->getMd5(),
+            'dimensions' => $file->getDimensions()
+            );
 
-        // Try to upload file
-        try {
-        // Success!
-        $file->upload();
-        } catch (\Exception $e) {
-        // Fail!
-        $errors = $file->getErrors();
+            // Try to upload file
+            try {
+            // Success!
+            $file->upload();
+            } catch (\Exception $e) {
+            // Fail!
+            $errors = $file->getErrors();
+            }
+
+            $sql_pic = "INSERT INTO pictures
+                SET picture_name = :picture_name,
+                    size = :size,
+                    uploaded_date = :uploaded_date";
+            $sth = $this->db->prepare($sql_pic);
+            $sth->bindParam("picture_name", $data['name']);
+            $sth->bindParam("size", $data['size']);
+            $sth->bindParam("uploaded_date", $currentDateTime);
+            $sth->execute();
+
+            $sth = $this->db->prepare("SELECT picture_id FROM pictures WHERE picture_name = :picture_name");
+            $sth->bindParam("picture_name", $data['name']);
+            $sth->execute();
+            $picture_id = $sth->fetchObject()->picture_id;
         }
 
-        $sql_pic = "INSERT INTO pictures
-            SET picture_name = :picture_name,
-                size = :size,
-                uploaded_date = :uploaded_date";
-        $sth = $this->db->prepare($sql_pic);
-        $sth->bindParam("picture_name", $data['name']);
-        $sth->bindParam("size", $data['size']);
-        $sth->bindParam("uploaded_date", $currentDateTime);
+        $input = $request->getParsedBody();
+        $sql_deal = "UPDATE deals
+                 SET title = :title,
+                 store_id = :store_id,
+                 description = :description,
+                 category_id = :category_id,
+                 expiration_date = :expiration_date,
+                 updated_date = :updated_date,
+                 picture_id = :picture_id
+                 WHERE deal_id = :deal_id";
+        $sth = $this->db->prepare($sql_deal);
+        $sth->bindParam("deal_id", $args['deal_id']);
+        $sth->bindValue("title", ($input['title'] == null ? $deal->title : $input['title']));
+        $sth->bindValue("store_id", ($input['store_id'] == null ? $deal->store_id : $input['store_id']));
+        $sth->bindValue("description", ($input['description'] == null ? $deal->description : $input['description']));
+        $sth->bindValue("category_id", ($input['category_id'] == null ? $deal->category_id : $input['category_id']));
+        $sth->bindValue("expiration_date", ($input['expiration_date'] == null ? $deal->expiration_date : $input['expiration_date']));
+        $sth->bindParam("updated_date", $currentDateTime);
+        $sth->bindParam("picture_id", $picture_id);
         $sth->execute();
 
-        $sth = $this->db->prepare("SELECT picture_id FROM pictures WHERE picture_name = :picture_name");
-        $sth->bindParam("picture_name", $data['name']);
+        $sth = $this->db->prepare("SELECT deal_id, username, title, store_id, description, category, expiration_date, posted_date, deals.updated_date, picture_name
+                       FROM deals, users, categories, pictures
+                       WHERE deals.user_id = users.user_id
+                       AND deals.category_id = categories.category_id
+                       AND deals.picture_id = pictures.picture_id
+                       AND deal_id = :deal_id");
+        $sth->bindParam("deal_id", $args['deal_id']);
         $sth->execute();
-        $picture_id = $sth->fetchObject()->picture_id;
-    }
-
-    $input = $request->getParsedBody();
-    $sql_deal = "UPDATE deals
-             SET title = :title,
-             store_id = :store_id,
-             description = :description,
-             category_id = :category_id,
-             expiration_date = :expiration_date,
-             updated_date = :updated_date,
-             picture_id = :picture_id
-             WHERE deal_id = :deal_id";
-    $sth = $this->db->prepare($sql_deal);
-    $sth->bindParam("deal_id", $args['deal_id']);
-    $sth->bindValue("title", ($input['title'] == null ? $deal->title : $input['title']));
-    $sth->bindValue("store_id", ($input['store_id'] == null ? $deal->store_id : $input['store_id']));
-    $sth->bindValue("description", ($input['description'] == null ? $deal->description : $input['description']));
-    $sth->bindValue("category_id", ($input['category_id'] == null ? $deal->category_id : $input['category_id']));
-    $sth->bindValue("expiration_date", ($input['expiration_date'] == null ? $deal->expiration_date : $input['expiration_date']));
-    $sth->bindParam("updated_date", $currentDateTime);
-    $sth->bindParam("picture_id", $picture_id);
-    $sth->execute();
-
-    $sth = $this->db->prepare("SELECT deal_id, username, title, store_id, description, category, expiration_date, posted_date, deals.updated_date, picture_name
-                   FROM deals, users, categories, pictures
-                   WHERE deals.user_id = users.user_id
-                   AND deals.category_id = categories.category_id
-                   AND deals.picture_id = pictures.picture_id
-                   AND deal_id = :deal_id");
-    $sth->bindParam("deal_id", $args['deal_id']);
-    $sth->execute();
-    $output = $sth->fetchObject();
-    return $this->response->withJson($output);
+        $output = $sth->fetchObject();
+        return $this->response->withJson($output);
     }
 });
 
@@ -1182,11 +1187,12 @@ $app->post('/api/deal', function ($request, $response, $args) {
 
     // Try to upload file
     try {
-    // Success!
-    $file->upload();
+        // Success!
+        $file->upload();
     } catch (\Exception $e) {
-    // Fail!
-    $errors = $file->getErrors();
+        // Fail!
+        $errors = $file->getErrors();
+        return '{"error":{"text": "'. $errors .'"}}';
     }
 
     $user_id = getUserIdFromToken($request, $this);
