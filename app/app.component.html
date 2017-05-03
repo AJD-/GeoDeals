@@ -7,7 +7,24 @@
 	</div>
 	<img class="logo" src="/img/logo.png"/>
 </nav>
-<main class="container">
+<span class="glyphicon glyphicon-menu-hamburger" id="left-side-menu-btn" [ngClass]="{'change': clicked}" (click)="getLocation()" *ngIf="loggedIn" onclick="$('#offscreen-left').toggleClass('open');"></span>
+<div id="offscreen-left" class="transition">
+    <form name="searchForm" #searchForm="ngForm" class="navbar-form" role="search" (ngSubmit)="search()">
+        <div class="input-group">
+            <input type="text" [ngClass]="{'.has-error': buisness_keyword.errors && buisness_keyword.touched}" [(ngModel)]="searchQuery.buisness_keyword" #buisness_keyword="ngModel" class="form-control" name="buisness_keyword" id="buisness_keyword" placeholder="Buisness Keyword">
+        </div>
+        <div class="input-group">
+            <input type="number" min=1 max=25 [ngClass]="{'.has-error': radius.errors && radius.touched}" [(ngModel)]="searchQuery.radius" #radius="ngModel" class="form-control" name="radius" id="radius" placeholder="Radius (miles)" required>
+        </div>
+        <div class="input-group">
+            <input type="text" [ngClass]="{'.has-error': deal_keyword.errors && deal_keyword.touched}" [(ngModel)]="searchQuery.deal_keyword" #deal_keyword="ngModel" class="form-control" name="deal_keyword" id="deal_keyword" placeholder="Deal Keyword">
+        </div>
+        <div class="form-group">
+            <button type="submit" [disabled]="searchForm.invalid" class="btn btn-primary btn-block">Search</button>
+        </div>
+    </form>
+</div>
+<main class="container" id="container">
 	<router-outlet></router-outlet>
     <img src="img/GeoDealsLogo1.png" id="logo-image">
 </main>
