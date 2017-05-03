@@ -1,5 +1,8 @@
-<div class="row alert alert-danger text-center" *ngIf="!deals">
+<div class="row alert alert-danger text-center animate-bottom" *ngIf="!deals">
 	<h1>There doesn't appear to be any deals in your area :(</h1>	
+</div>
+<div class="row alert alert-danger text-center animate-bottom" *ngIf="invalidSearch">
+    <h1>{{ err }}</h1>
 </div>
 <div class="row" *ngFor="let deal of deals; let i = index">
 	<div class="media thumbnail rel">

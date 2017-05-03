@@ -20,6 +20,8 @@ export class FeedComponent {
 	uv : boolean[];
     dv: boolean[];
     clicked: boolean = false;
+    invalidSearch: boolean = false;
+    err: string;
 
     constructor(private dealRepository: DealRepository, private voteService: VoteService) {
 		this.title = "GeoDeals";
@@ -40,14 +42,21 @@ export class FeedComponent {
     }
 
     ngOnInit() {
-        window.sessionStorage.setItem("deals_search", null);
+        window.sessionStorage.removeItem("deals_search");
+        window.sessionStorage.removeItem("error");
         setInterval(() => {
             let variable = window.sessionStorage.getItem("deals_search");
             if (JSON.parse(variable)) {
                 this.deals = JSON.parse(variable);
                 window.sessionStorage.setItem("deals_search", null);
             }
-        }, 2000);
+            if (window.sessionStorage.getItem("error") !== null) {
+                this.invalidSearch = true;
+                this.err = window.sessionStorage.getItem("error");
+            } else {
+                this.invalidSearch = false;
+            }
+        }, 1000);
     }
 
 	upvote(index : number, deal_id: number){
