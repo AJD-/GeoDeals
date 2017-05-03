@@ -9,6 +9,6 @@ export class Deal {
     title: string;
     updated_date: string;
     user_id: number;
-    imagePath: string;
+    picture_name: string;
     vote_count: number;
 }
