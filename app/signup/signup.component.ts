@@ -26,12 +26,12 @@ export class SignupComponent {
             this.user.email_marketing = 0;
         this.userRepository.add(this.user)
             .then(x => {
-                this.goToFeed(`User registered`);
+                this.goToLogin(`User registered`);
             });
     }
 
-    goToFeed(message) {
-        this.router.navigateByUrl('feed')
+    goToLogin(message) {
+        this.router.navigateByUrl('login')
             .then(() => console.log(message));
     }
 }

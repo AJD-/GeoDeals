@@ -12,6 +12,7 @@
 			</a>
 		</div>
 		<h1 class="media-heading col-xs-6">{{ deal.title }}</h1>
+        <h4 class="media-heading col-xs-6">{{ deal.store_id }}</h4>
 		<p class="media-description col-xs-6">{{ deal.description }}</p>
         <p class="media-description col-xs-6">Expires: {{ deal.expiration_date }}</p>
 		<div class="pull-right voteContainer">
@@ -21,4 +22,4 @@
 		</div>
 	</div>
 </div>
-<div class="btn btn-primary addbtn" routerLink="/new"><p>+</p></div>
+<div class="btn btn-danger addbtn" routerLink="/new"><p>+</p></div>

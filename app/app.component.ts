@@ -20,6 +20,7 @@ export class AppComponent {
     loc: any = {};
     deals: Deal[];
     loading: boolean = false;
+    username: string;
 
 	constructor(
 		private router: Router,
@@ -28,7 +29,10 @@ export class AppComponent {
         private userRepository: UserRepository
 	){
 		router.events.subscribe((loggedIn) => this.loggedIn = (router.url === "/feed"));
-		router.events.subscribe((atDeal) => this.atDeal = (router.url.includes("/deal")));
+        router.events.subscribe((atDeal) => {
+            this.atDeal = (router.url.includes("/deal"));
+            this.username = localStorage.getItem("Username");
+        });
 		this.title = "GeoDeals";
 	}
 	ngOnInit(){
@@ -72,6 +76,9 @@ export class AppComponent {
     }
     logout() {
         this.userRepository.logout()
-            .then(x => localStorage.removeItem("Authorization"));
+            .then(x => {
+                localStorage.removeItem("Authorization");
+                localStorage.removeItem("Username");
+            });
     }
 }

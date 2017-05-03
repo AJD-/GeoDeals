@@ -49,7 +49,7 @@ export class DealRepository {
         headers.append("Authorization", localStorage.getItem('Authorization'));
         let options = new RequestOptions({ headers: headers });
         return this.http
-            .get(`${this._apiPostDealUrl}/deal/${id}`, options)
+            .get(`${this._apiPostDealUrl}${id}`, options)
             .toPromise()
             .then(x => x.json().data as Deal)
             .catch(x => x.message);

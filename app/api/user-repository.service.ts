@@ -40,8 +40,6 @@ export class UserRepository {
 			.toPromise()
             .then(x => {
                 if (x.json().token) {
-                    this.Authorization = x.json().token;
-                    localStorage.setItem('Authorization', this.Authorization);
                 } else {
                     localStorage.setItem('error', (x.json().error.text));
                 }
@@ -76,6 +74,9 @@ export class UserRepository {
             .toPromise()
             .then(x => {
                 if (x.json().token) {
+                    console.log(x.json());
+                    console.log(x.json().username);
+                    localStorage.setItem("Username", x.json().username);
                     this.Authorization = x.json().token;
                     localStorage.setItem('Authorization', this.Authorization);
                 } else {

@@ -4,6 +4,7 @@
     	<div *ngIf="loggedIn">
     		<button class="btn btn-primary btn-block" id="logout" (click)="logout()" routerLink="/">Log Out</button>
     	</div>
+        <div *ngIf="loggedIn" id="username_display">{{ username }}</div>
     	<div class="flexbox-container">
     		<!-- <h1 class="center-block">{{ title }}</h1> -->
     	</div>
@@ -11,6 +12,7 @@
 
     <span class="glyphicon glyphicon-menu-hamburger" id="left-side-menu-btn" [ngClass]="{'change': clicked}" (click)="getLocation()" *ngIf="loggedIn" onclick="$('#offscreen-left').toggleClass('open');"></span>
     <div id="offscreen-left" class="transition">
+        <h1 id="searchTitle">Search:</h1>
         <form name="searchForm" #searchForm="ngForm" class="navbar-form" role="search" (ngSubmit)="search()">
             <div class="input-group">
                 <input type="text" [ngClass]="{'.has-error': buisness_keyword.errors && buisness_keyword.touched}" [(ngModel)]="searchQuery.buisness_keyword" #buisness_keyword="ngModel" class="form-control" name="buisness_keyword" id="buisness_keyword" placeholder="Buisness Keyword">
