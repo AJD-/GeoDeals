@@ -6,7 +6,6 @@ import { Deal } from '../api/deal';
 import { Vote } from '../api/vote';
 import { User } from '../api/user';
 
-
 @Component({
   selector: 'feed',
   templateUrl: './app/feed/feed.component.html',
@@ -19,7 +18,8 @@ export class FeedComponent {
     deals: Deal[];
     vote: Vote = new Vote;
 	uv : boolean[];
-	dv : boolean[];
+    dv: boolean[];
+    clicked: boolean = false;
 
     constructor(private dealRepository: DealRepository, private voteService: VoteService) {
 		this.title = "GeoDeals";
@@ -37,7 +37,19 @@ export class FeedComponent {
                     }
                 }
             });		
-	}
+    }
+
+    ngOnInit() {
+        window.sessionStorage.setItem("deals_search", null);
+        setInterval(() => {
+            let variable = window.sessionStorage.getItem("deals_search");
+            if (JSON.parse(variable)) {
+                this.deals = JSON.parse(variable);
+                window.sessionStorage.setItem("deals_search", null);
+            }
+        }, 2000);
+    }
+
 	upvote(index : number, deal_id: number){
 		if(!this.uv[index]){
 			if(this.dv[index]){
