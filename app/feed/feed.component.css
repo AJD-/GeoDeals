@@ -28,6 +28,7 @@
 }
 .addbtn {
     position: fixed;
+    z-index:500;
     left: 85vw;
     top: 85vh;
     border-radius: 100px;
@@ -43,4 +44,7 @@
 }
 .rel{
     position:relative;
+}
+.content-container {
+    position:absolute;
 }
