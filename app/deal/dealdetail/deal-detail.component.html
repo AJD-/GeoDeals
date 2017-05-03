@@ -1,15 +1,14 @@
 <div class="row">
 	<div class="media thumbnail">
+		<h1 class="media-heading">{{ deal?.title }}</h1>
 		<div>
 			<img class="media-object deal-icon" [src]="deal?.imagePath" onError="this.src='/img/default-thumbnail.jpg';" [alt]="deal?.title">
 		</div>
-		<h1 class="media-heading col-xs-6">{{ deal?.title }}</h1>
-		<p class="media-description col-xs-6">{{ deal?.description }}</p>
+		<p class="media-description">{{ deal?.description }}</p>
         <div class="pull-right voteContainer">
 			<span [style.color]="isUpvoted(i)" (click)="upvote(i, deal?.deal_id)" class="glyphicon glyphicon-menu-up"></span><br/>
 			<p class="rank">{{ deal?.vote_count || 0 }}</p><br/>
 			<span [style.color]="isDownvoted(i)" (click)="downvote(i, deal?.deal_id)" class="glyphicon glyphicon-menu-down"></span>
 	    </div>
-		<p>Posted by user {{ deal?.user_id }}</p>
     </div>
 </div>

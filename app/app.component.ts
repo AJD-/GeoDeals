@@ -13,6 +13,7 @@ import { Deal } from './api/deal';
 export class AppComponent { 
 	title : string;
     loggedIn: boolean;
+    atDeal: boolean;
     clicked: boolean = false;
     searchQuery: any = {};
     loc: any = {};
@@ -25,6 +26,7 @@ export class AppComponent {
         private dealRepository: DealRepository
 	){
 		router.events.subscribe((loggedIn) => this.loggedIn = (router.url === "/feed"));
+		router.events.subscribe((atDeal) => this.atDeal = (router.url.includes("/deal")));
 		this.title = "GeoDeals";
 	}
 	ngOnInit(){
