@@ -17,6 +17,7 @@ export class AppComponent {
     searchQuery: any = {};
     loc: any = {};
     deals: Deal[];
+    loading: boolean = false;
 
 	constructor(
 		private router: Router,
@@ -51,13 +52,18 @@ export class AppComponent {
         }
     }
     search() {
+        this.loading = true;
         this.searchQuery.latitude = this.loc.latitude;
         this.searchQuery.longitude = this.loc.longitude;
         console.log(this.searchQuery);
+        window.sessionStorage.removeItem("error");
         this.dealRepository.search(this.searchQuery)
             .then(x => {
-                this.deals = x;
-                window.sessionStorage.setItem("deals_search", JSON.stringify(this.deals));
+                this.loading = false;
+                if (x) { 
+                    this.deals = x;
+                    window.sessionStorage.setItem("deals_search", JSON.stringify(this.deals));
+                }
             });
     }
 }

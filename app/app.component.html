@@ -26,5 +26,8 @@
 </div>
 <main class="container" id="container">
 	<router-outlet></router-outlet>
+    <div class="loader-container" *ngIf="loading">
+        <div class="loader"></div>
+    </div>
     <img src="img/GeoDealsLogo1.png" id="logo-image">
 </main>
