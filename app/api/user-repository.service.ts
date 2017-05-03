@@ -8,21 +8,27 @@ export class UserRepository {
     private _apiUrl = 'https://54.70.252.84/api/profile';
     private _signInUrl = 'https://54.70.252.84/api/signin';
 
-    private token: string;
+    private Authorization: string;
 
 	constructor(private http: Http) {}
 
-	listAll() : Promise<User[]>{
+    listAll(): Promise<User[]>{
+        var headers = new Headers();
+        headers.append("Authorization", this.Authorization);
+        let options = new RequestOptions({ headers: headers });
 		return this.http
-			.get(this._apiUrl)
+			.get(this._apiUrl, options)
 			.toPromise()
 			.then(x => x.json().data as User[])
 			.catch(x => x.message);
 	}
 
-	get(user: User) : Promise<User>{
+    get(user: User): Promise<User>{
+        var headers = new Headers();
+        headers.append("Authorization", this.Authorization);
+        let options = new RequestOptions({ headers: headers });
 		return this.http
-			.get(`${this._apiUrl}/${user.username}`)
+			.get(`${this._apiUrl}/${user.username}`, options)
 			.toPromise()
 			.then(x => x.json().data as User)
 			.catch(x => x.message);
@@ -34,8 +40,8 @@ export class UserRepository {
 			.toPromise()
             .then(x => {
                 if (x.json().token) {
-                    this.token = x.json().token;
-                    localStorage.setItem('jwt', this.token);
+                    this.Authorization = x.json().token;
+                    localStorage.setItem('Authorization', this.Authorization);
                 } else {
                     localStorage.setItem('error', (x.json().error.text));
                 }
@@ -43,17 +49,23 @@ export class UserRepository {
 			.catch(x => x.message);
 	}
 	
-	update(user: User) : Promise<User>{
+    update(user: User): Promise<User>{
+        var headers = new Headers();
+        headers.append("Authorization", this.Authorization);
+        let options = new RequestOptions({ headers: headers });
         return this.http
-            .put(`${this._apiUrl}/${user.username}`, user)
+            .put(`${this._apiUrl}/${user.username}`, user, options)
 			.toPromise()
 			.then(() => user)
 			.catch(x => x.message);
 	}
 
-	delete(user: User) : Promise<void>{
+    delete(user: User): Promise<void>{
+        var headers = new Headers();
+        headers.append("Authorization", this.Authorization);
+        let options = new RequestOptions({ headers: headers });
         return this.http
-            .delete(`${this._apiUrl}/${user.username}`)
+            .delete(`${this._apiUrl}/${user.username}`, options)
 			.toPromise()
 			.catch(x => x.message);
     }
@@ -64,8 +76,8 @@ export class UserRepository {
             .toPromise()
             .then(x => {
                 if (x.json().token) {
-                    this.token = x.json().token;
-                    localStorage.setItem('jwt',this.token);
+                    this.Authorization = x.json().token;
+                    localStorage.setItem('Authorization', this.Authorization);
                 } else {
                     localStorage.setItem('error', (x.json().error.text));
                 }
