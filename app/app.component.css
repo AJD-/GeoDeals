@@ -71,6 +71,7 @@ body {
     background-color: white;
     box-shadow: 5px 5px 5px lightgrey;
     padding: 5px 5px 5px 5px;
+    z-index: 500;
 }
 .transition {
     -webkit-transition: left 0.3s ease-out; /* Chrome 1-25, Safari 3.2+ */
