@@ -445,7 +445,6 @@ $app->get('/api/myip', function ($request, $response, $args) {
         return '{"error":{"text": "Authorization Token Error"}}'; 
     }
 
-
 });
 
 // Change Password
@@ -819,42 +818,52 @@ $app->post('/api/stores/search', function ($request, $response, $args) {
 
 // Default search for deals
 $app->get('/api/deals/search', function ($request, $response, $args) {
-    $input = $request->getParsedBody();
 
-    // Grab IP address
-    $ip_address = $_SERVER['REMOTE_ADDR'];
+    $jwt = $request->getHeaders();
 
-    // Get zip based on IP address
-    $location_info = getLocation($ip_address);
-    $zip = $location_info->zip;
-    $lat_by_ip = $location_info->lat;
-    $lon_by_ip = $location_info->lon;
-    $city_by_ip = $location_info->city;
+    if(isAuthenticated($jwt, $this)){
 
-    // In the instance that nothing is passed in, grab the city by ip and display a range of deals
-    //SELECT * FROM deals WHERE store_id LIKE '%$city_by_ip%';
-    $find = "SELECT * FROM deals WHERE store_id LIKE '%$city_by_ip%'";
-    try {
-        $db = $this->db;
-        $stmt = $db->prepare($find);
-        //$stmt->bindParam("store_id_implode", $store_id_implode);
-        $stmt->execute();
-        $returned_deals = $stmt->fetchAll();
-        $db = null;
-        $final_deals = null;
+        $input = $request->getParsedBody();
 
-        if ($returned_deals) {
-            $final_deals = $returned_deals;
+        // Grab IP address
+        $ip_address = $_SERVER['REMOTE_ADDR'];
+
+        // Get zip based on IP address
+        $location_info = getLocation($ip_address);
+        $zip = $location_info->zip;
+        $lat_by_ip = $location_info->lat;
+        $lon_by_ip = $location_info->lon;
+        $city_by_ip = $location_info->city;
+
+        // In the instance that nothing is passed in, grab the city by ip and display a range of deals
+        //SELECT * FROM deals WHERE store_id LIKE '%$city_by_ip%';
+        $find = "SELECT * FROM deals WHERE store_id LIKE '%$city_by_ip%'";
+        try {
+            $db = $this->db;
+            $stmt = $db->prepare($find);
+            //$stmt->bindParam("store_id_implode", $store_id_implode);
+            $stmt->execute();
+            $returned_deals = $stmt->fetchAll();
+            $db = null;
+            $final_deals = null;
+
+            if ($returned_deals) {
+                $final_deals = $returned_deals;
+            }
+        } catch (PDOException $e) {
+            echo '{"error":{"text": "Error during location gathering"}}';
         }
-    } catch (PDOException $e) {
-        echo '{"error":{"text": "Error during location gathering"}}';
+
+        // Final returned object
+        $obj = array( 'deals' => [
+        "final_deals" => $final_deals
+        ]);
+        return $this->response->withJson($obj);
+    }
+    else{
+        return '{"error":{"text": "Authorization Token Error"}}'; 
     }
 
-    // Final returned object
-    $obj = array( 'deals' => [
-    "final_deals" => $final_deals
-    ]);
-    return $this->response->withJson($obj);
 });
 
 
@@ -1272,78 +1281,86 @@ $app->post('/api/vote', function ($request, $response, $args) {
     // Log http request
     logRequest($request, $this);
 
-    // Get user_id from jwt in authorization header
-    $user_id = getUserIdFromToken($request, $this);
+    $jwt = $request->getHeaders();
 
-    // Get current vote for user on specific deal
-    $input = $request->getParsedBody();
+    if(isAuthenticated($jwt, $this)){
+        // Get user_id from jwt in authorization header
+        $user_id = getUserIdFromToken($request, $this);
 
-    $search = "SELECT vote_type
-               FROM votes 
-               WHERE user_id = :user_id
-               AND deal_id = :deal_id";
-    $sth = $this->db->prepare($search);
-    $sth->bindParam("user_id", $user_id);
-    $sth->bindParam("deal_id", $input['deal_id']);
-    $success = $sth->execute();
-    $vote = $sth->fetchObject();
+        // Get current vote for user on specific deal
+        $input = $request->getParsedBody();
 
-    $vote_type = $input['vote_type'];
-    $deal_id = $input['deal_id'];
-    
-    // If query executes successfully (all input args are valid)
-    if($success) {
-        // If user has not voted on current deal
-        // Add new entry in votes table
-        if($vote == false) {
-            $addVote = "INSERT INTO votes 
-                        SET vote_type = :vote_type,
-                            user_id = :user_id,
-                            deal_id = :deal_id,
-                            vote_date = :vote_date";
-            $sth = $this->db->prepare($addVote);
-            $sth->bindParam("vote_type", $vote_type);
-            $sth->bindParam("user_id", $user_id);
-            $sth->bindParam("deal_id", $deal_id);
-            $sth->bindParam("vote_date", date('Y-m-d H:i:s'));
-            $sth->execute();
+        $search = "SELECT vote_type
+                   FROM votes 
+                   WHERE user_id = :user_id
+                   AND deal_id = :deal_id";
+        $sth = $this->db->prepare($search);
+        $sth->bindParam("user_id", $user_id);
+        $sth->bindParam("deal_id", $input['deal_id']);
+        $success = $sth->execute();
+        $vote = $sth->fetchObject();
 
-            // Starting vote is 0 because no vote existed before
-            $ogVoteType = 0;            
-        }
-        // If user has already voted on current deal
-        // Update existing entry in votes table with vote_type
-        else {
-            $editVote = "UPDATE votes 
-                         SET vote_type = :vote_type,
-                             vote_date = :vote_date
-                         WHERE user_id = :user_id
-                         AND deal_id = :deal_id";
-            $sth = $this->db->prepare($editVote);
-            $sth->bindParam("vote_type", $vote_type);
-            $sth->bindParam("user_id", $user_id);
-            $sth->bindParam("deal_id", $deal_id);
-            $sth->bindParam("vote_date", date('Y-m-d H:i:s'));
-            $sth->execute();
-
-            // Get starting vote type from votes table
-            $ogVoteType = $vote->vote_type;
-        }
-
-        // Get amount to adjust vote total by based on new vote
-        $voteAdjustment = -1 * $ogVoteType + $vote_type;
+        $vote_type = $input['vote_type'];
+        $deal_id = $input['deal_id'];
         
-        // Update vote_count in deals table
-        $adjustVoteCountSql = "UPDATE deals
-                               SET vote_count = vote_count + :voteAdjustment
-                               WHERE deal_id = :deal_id";
-        $sth = $this->db->prepare($adjustVoteCountSql);
-        $sth->bindParam("voteAdjustment", $voteAdjustment);
-        $sth->bindParam("deal_id", $deal_id);
-        $sth->execute();
+        // If query executes successfully (all input args are valid)
+        if($success) {
+            // If user has not voted on current deal
+            // Add new entry in votes table
+            if($vote == false) {
+                $addVote = "INSERT INTO votes 
+                            SET vote_type = :vote_type,
+                                user_id = :user_id,
+                                deal_id = :deal_id,
+                                vote_date = :vote_date";
+                $sth = $this->db->prepare($addVote);
+                $sth->bindParam("vote_type", $vote_type);
+                $sth->bindParam("user_id", $user_id);
+                $sth->bindParam("deal_id", $deal_id);
+                $sth->bindParam("vote_date", date('Y-m-d H:i:s'));
+                $sth->execute();
+
+                // Starting vote is 0 because no vote existed before
+                $ogVoteType = 0;            
+            }
+            // If user has already voted on current deal
+            // Update existing entry in votes table with vote_type
+            else {
+                $editVote = "UPDATE votes 
+                             SET vote_type = :vote_type,
+                                 vote_date = :vote_date
+                             WHERE user_id = :user_id
+                             AND deal_id = :deal_id";
+                $sth = $this->db->prepare($editVote);
+                $sth->bindParam("vote_type", $vote_type);
+                $sth->bindParam("user_id", $user_id);
+                $sth->bindParam("deal_id", $deal_id);
+                $sth->bindParam("vote_date", date('Y-m-d H:i:s'));
+                $sth->execute();
+
+                // Get starting vote type from votes table
+                $ogVoteType = $vote->vote_type;
+            }
+
+            // Get amount to adjust vote total by based on new vote
+            $voteAdjustment = -1 * $ogVoteType + $vote_type;
+            
+            // Update vote_count in deals table
+            $adjustVoteCountSql = "UPDATE deals
+                                   SET vote_count = vote_count + :voteAdjustment
+                                   WHERE deal_id = :deal_id";
+            $sth = $this->db->prepare($adjustVoteCountSql);
+            $sth->bindParam("voteAdjustment", $voteAdjustment);
+            $sth->bindParam("deal_id", $deal_id);
+            $sth->execute();
+        }
+
+        return $this->response->withJson(array("rows affected" => $sth->rowCount()));
+    }
+    else{
+        return '{"error":{"text": "Authorization Token Error"}}'; 
     }
 
-    return $this->response->withJson(array("rows affected" => $sth->rowCount()));
 });
 
 // Get vote count
