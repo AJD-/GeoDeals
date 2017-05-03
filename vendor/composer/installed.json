@@ -3021,7 +3021,7 @@
         },
         "time": "2013-07-07T17:01:41+00:00",
         "type": "library",
-        "installation-source": "source",
+        "installation-source": "dist",
         "autoload": {
             "psr-0": {
                 "Upload": "src"

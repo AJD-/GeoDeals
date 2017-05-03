@@ -134,7 +134,7 @@ function isAuthenticated($jwt, $_this){
     try {
         $decoded = JWT::decode($jwt['HTTP_AUTHORIZATION'][0], $key, array('HS256'));
     } catch (UnexpectedValueException $e) {
-        echo $e->getMessage();
+        return false;
     }
 
     if (isset($decoded)) {
@@ -158,9 +158,12 @@ function isAuthenticated($jwt, $_this){
 }
 
 function authError(){
-    echo json_encode([
-        "response" => "Authorization Token Error"
-    ]);
+
+    return '{"error":{"text": "Authorization Token Error"}}'; 
+
+    // return json_encode([
+    //     "response" => "Authorization Token Error"
+    // ]);
 }
 
 function generateToken($user, $user_id, $_this){
@@ -183,7 +186,7 @@ function generateToken($user, $user_id, $_this){
     try {
         $jwt = JWT::encode($payload, $key);
     } catch (Exception $e) {
-        echo json_encode($e);
+        return json_encode($e);
     }
 
     $sql = "INSERT INTO tokens (user_id, token, created_date, expiration_date)
@@ -439,8 +442,9 @@ $app->get('/api/myip', function ($request, $response, $args) {
         return $this->response->withJson(getHeaderInfo());
     }
     else{
-        authError();
+        return '{"error":{"text": "Authorization Token Error"}}'; 
     }
+
 });
 
 // Change Password
@@ -467,13 +471,14 @@ $app->post('/api/password', function ($request, $response) {
 // Sign In
 $app->post('/api/signin', function (Request $request, Response $response) {
 
-    $data = $request->getParsedBody();
+    $input = $request->getParsedBody();
+    //$data = $request->getParsedBody();
 
     //$result = file_get_contents('./users.json');
     $users = json_decode($result, true);
 
-    $login = $data['user_login'];
-    $password = $data['user_password'];
+    $login = $input['username'];
+    $password = $input['password'];
 
     $find = "SELECT * FROM users WHERE username = :username";
     try {
@@ -517,9 +522,9 @@ $app->post('/api/signin', function (Request $request, Response $response) {
     }
 
     if (!isset($current_user)) {
-        echo json_encode("No user with that user/password combination");
+        return '{"error":{"text": "No user with that username/password combination"}}'; 
     } else if ($current_user['user_verified'] == 0) {
-        echo json_encode("Please verify email before logging in");
+        return '{"error":{"text": "Please verify email before logging in"}}'; 
     } else {
 
         // Find a corresponding token.
@@ -759,12 +764,31 @@ $app->post('/api/stores/search', function ($request, $response, $args) {
     $state = $input['state'];
     $city = $input['city'];
     $store = $input['store'];
+    $latitude_by_js = $input['latitude'];
+    $longitude_by_js = $input['longitude'];
     $location = $city . ", " . $state;
 
     $url_params = array();
     $url_params['limit'] = 50;
 
-    if($city && $store){
+
+    if($latitude_by_js && $longitude_by_js && $store){
+        try{
+            $url_params['term'] = $store;
+            $url_params['latitude'] = $latitude_by_js;
+            $url_params['longitude'] = $longitude_by_js;
+            $url_params['radius'] = 40000;
+
+            $store_list = yelp_request($GLOBALS['BEARER_TOKEN'], $GLOBALS['API_HOST'], $GLOBALS['SEARCH_PATH'], $url_params);
+            //$pretty_response = json_encode(json_decode($store_list), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            //Uses current to get first element of key,val associative array that does not have a a key and is the only element
+            $store_obj = current(json_decode($store_list));
+        }
+        catch (Exception $e) {
+            return '{"error":{"text": "Could not connect to yelp API."}}'; 
+        }
+    }
+    else if(($city && $store) || ($state && $store)){
         try{
             $url_params['term'] = $store;
             $url_params['location'] = $location;
@@ -775,17 +799,16 @@ $app->post('/api/stores/search', function ($request, $response, $args) {
             $store_obj = current(json_decode($store_list));
         }
         catch (Exception $e) {
-            echo '{"error":{"text": "Could not connect to yelp API."}}'; 
+            return '{"error":{"text": "Could not connect to yelp API."}}'; 
         }
     }
     else{
-        echo '{"error":{"text": "Error invalid search params."},
-        {"state":"string", "city":"string", "store":"string"}}';
+        return '{"error":{"text": "Error invalid search params."},
+        {"state":"string", "city":"string", "store":"string", "lat":"number", "long":"number"}}';
     }
 
     // Final returned object
     $obj = array( 'deals' => [
-    "location" => $location,
     "store" => $url_params['term'],
     "store_list" => $store_obj
     ]);
@@ -795,42 +818,52 @@ $app->post('/api/stores/search', function ($request, $response, $args) {
 
 // Default search for deals
 $app->get('/api/deals/search', function ($request, $response, $args) {
-    $input = $request->getParsedBody();
 
-    // Grab IP address
-    $ip_address = $_SERVER['REMOTE_ADDR'];
+    $jwt = $request->getHeaders();
 
-    // Get zip based on IP address
-    $location_info = getLocation($ip_address);
-    $zip = $location_info->zip;
-    $lat_by_ip = $location_info->lat;
-    $lon_by_ip = $location_info->lon;
-    $city_by_ip = $location_info->city;
+    if(isAuthenticated($jwt, $this)){
 
-    // In the instance that nothing is passed in, grab the city by ip and display a range of deals
-    //SELECT * FROM deals WHERE store_id LIKE '%$city_by_ip%';
-    $find = "SELECT * FROM deals WHERE store_id LIKE '%$city_by_ip%'";
-    try {
-        $db = $this->db;
-        $stmt = $db->prepare($find);
-        //$stmt->bindParam("store_id_implode", $store_id_implode);
-        $stmt->execute();
-        $returned_deals = $stmt->fetchAll();
-        $db = null;
-        $final_deals = null;
+        $input = $request->getParsedBody();
 
-        if ($returned_deals) {
-            $final_deals = $returned_deals;
+        // Grab IP address
+        $ip_address = $_SERVER['REMOTE_ADDR'];
+
+        // Get zip based on IP address
+        $location_info = getLocation($ip_address);
+        $zip = $location_info->zip;
+        $lat_by_ip = $location_info->lat;
+        $lon_by_ip = $location_info->lon;
+        $city_by_ip = $location_info->city;
+
+        // In the instance that nothing is passed in, grab the city by ip and display a range of deals
+        //SELECT * FROM deals WHERE store_id LIKE '%$city_by_ip%';
+        $find = "SELECT * FROM deals WHERE store_id LIKE '%$city_by_ip%'";
+        try {
+            $db = $this->db;
+            $stmt = $db->prepare($find);
+            //$stmt->bindParam("store_id_implode", $store_id_implode);
+            $stmt->execute();
+            $returned_deals = $stmt->fetchAll();
+            $db = null;
+            $final_deals = null;
+
+            if ($returned_deals) {
+                $final_deals = $returned_deals;
+            }
+        } catch (PDOException $e) {
+            echo '{"error":{"text": "Error during location gathering"}}';
         }
-    } catch (PDOException $e) {
-        echo '{"error":{"text": "Error during location gathering"}}';
+
+        // Final returned object
+        $obj = array( 'deals' => [
+        "final_deals" => $final_deals
+        ]);
+        return $this->response->withJson($obj);
+    }
+    else{
+        return '{"error":{"text": "Authorization Token Error"}}'; 
     }
 
-    // Final returned object
-    $obj = array( 'deals' => [
-    "final_deals" => $final_deals
-    ]);
-    return $this->response->withJson($obj);
 });
 
 
@@ -912,7 +945,7 @@ $app->post('/api/deals/search', function ($request, $response, $args) {
         $url_params['radius'] = $radius_in_meters;
     }
     else{
-        echo '{"error":{"text": "Error invalid search params."},
+        return '{"error":{"text": "Error invalid search params."},
         {"business_keyword":"string", "deal_keyword":"string", "latitude":"number", "longitude": "number", "radius": "number"}}';
     }
 
@@ -966,7 +999,7 @@ $app->post('/api/deals/search', function ($request, $response, $args) {
             $final_deals = $returned_deals;
         }
     } catch (PDOException $e) {
-        echo '{"error":{"text": "Error during location gathering"}}';
+        return '{"error":{"text": "Error during location gathering"}}';
     }
 
     // SEO optimize business_keyword
@@ -995,8 +1028,7 @@ $app->post('/api/deals/search', function ($request, $response, $args) {
     "lon" => $url_params['longitude'],
     "radius" => $url_params['radius'],
     "store_id_implode" => $store_id_implode,
-    "final_deals" => $final_deals,
-    "optimized_deals" => $optimized_deals
+    "final_deals" => $optimized_deals
     ]);
     return $this->response->withJson($obj);
 });
@@ -1004,21 +1036,31 @@ $app->post('/api/deals/search', function ($request, $response, $args) {
 
 // Get specific deal
 $app->get('/api/deal/[{deal_id}]', function ($request, $response, $args) {
-    $sth = $this->db->prepare("SELECT deal_id, username, title, store, description, category, expiration_date, posted_date, deals.updated_date, picture_name
-                               FROM deals, users, categories, stores, pictures
+    $sth = $this->db->prepare("SELECT deal_id, username, title, store_id, description, category, expiration_date, posted_date, deals.updated_date, picture_name, vote_count
+                               FROM deals, users, categories, pictures
                                WHERE deals.user_id = users.user_id
                                AND deals.category_id = categories.category_id
-                               AND deals.store_id = stores.store_id
                                AND deals.picture_id = pictures.picture_id
                                AND deal_id = :deal_id");
     $sth->bindParam("deal_id", $args['deal_id']);
     $sth->execute();
     $deals = $sth->fetchObject();
-    return $this->response->withJson($deals);
+
+    if($deals == false){
+        return '{"error":{"text": "Deal does not exist"}}';
+    }
+    else{
+        return $this->response->withJson($deals); 
+    }
+
 });
+
 
 // Edit a Deal
 $app->post('/api/deal/edit/[{deal_id}]', function ($request, $responese, $args) {
+    // Log http request
+    logRequest($request, $this);
+
     $current_user_id = getUserIdFromToken($request, $this);
     $sth = $this->db->prepare("SELECT user_id FROM deals WHERE deal_id = :deal_id");
     $sth->bindParam("deal_id", $args['deal_id']);
@@ -1026,110 +1068,112 @@ $app->post('/api/deal/edit/[{deal_id}]', function ($request, $responese, $args) 
     $user_id = $sth->fetchObject()->user_id;
 
     if ($current_user_id != $user_id) {
-	echo '{"error":{"text": "You do not have permission to edit."}}';
+    return '{"error":{"text": "You do not have permission to edit."}}';
     }
     else {
-	$getDeal = "SELECT deal_id, title, store_id, description, category_id, expiration_date, picture_id
-                    FROM deals
-                    WHERE deal_id = :deal_id";
+        $getDeal = "SELECT deal_id, title, store_id, description, category_id, expiration_date, picture_id
+                        FROM deals
+                        WHERE deal_id = :deal_id";
 
-	$sth = $this->db->prepare($getDeal);
-	$sth->bindParam("deal_id", $args['deal_id']);
-	$sth->execute();
-	$deal = $sth->fetchObject();
+        $sth = $this->db->prepare($getDeal);
+        $sth->bindParam("deal_id", $args['deal_id']);
+        $sth->execute();
+        $deal = $sth->fetchObject();
 
-	$picture_id = $deal->picture_id;
-	$currentDateTime = date('Y-m-d H:i:s');
+        $picture_id = $deal->picture_id;
+        $currentDateTime = date('Y-m-d H:i:s');
 
-	if ($_FILES['image']['name'] != null) {
-	    $storage = new \Upload\Storage\FileSystem('./deal_picture');
-	    $file = new \Upload\File('image', $storage);
+        if ($_FILES['image']['name'] != null) {
+            $storage = new \Upload\Storage\FileSystem('./deal_picture');
+            $file = new \Upload\File('image', $storage);
 
-	    // Optionally you can rename the file on upload
-	    $new_filename = uniqid();
-	    $file->setName($new_filename);
+            // Optionally you can rename the file on upload
+            $new_filename = uniqid();
+            $file->setName($new_filename);
 
-	    // Validate file upload
-	    $file->addValidations(array(
-		// Ensure file is of type "image/png" or "image/jpeg"
-		new \Upload\Validation\Mimetype(array('image/png', 'image/jpeg')),
+            // Validate file upload
+            $file->addValidations(array(
+            // Ensure file is of type "image/png" or "image/jpeg"
+            new \Upload\Validation\Mimetype(array('image/png', 'image/jpeg')),
 
-		// Ensure file is no larger than 5M (use "B", "K", M", or "G")
-		new \Upload\Validation\Size('5M')
-	    ));
+            // Ensure file is no larger than 5M (use "B", "K", M", or "G")
+            new \Upload\Validation\Size('5M')
+            ));
 
-	    // Access data about the file that has been uploaded
-	    $data = array(
-		'name'       => $file->getNameWithExtension(),
-		'extension'  => $file->getExtension(),
-		'mime'       => $file->getMimetype(),
-		'size'       => $file->getSize(),
-		'md5'        => $file->getMd5(),
-		'dimensions' => $file->getDimensions()
-	    );
+            // Access data about the file that has been uploaded
+            $data = array(
+            'name'       => $file->getNameWithExtension(),
+            'extension'  => $file->getExtension(),
+            'mime'       => $file->getMimetype(),
+            'size'       => $file->getSize(),
+            'md5'        => $file->getMd5(),
+            'dimensions' => $file->getDimensions()
+            );
 
-	    // Try to upload file
-	    try {
-		// Success!
-		$file->upload();
-	    } catch (\Exception $e) {
-		// Fail!
-		$errors = $file->getErrors();
-	    }
+            // Try to upload file
+            try {
+            // Success!
+            $file->upload();
+            } catch (\Exception $e) {
+            // Fail!
+            $errors = $file->getErrors();
+            }
 
-	    $sql_pic = "INSERT INTO pictures
-			SET picture_name = :picture_name,
-			    size = :size,
-			    uploaded_date = :uploaded_date";
-	    $sth = $this->db->prepare($sql_pic);
-	    $sth->bindParam("picture_name", $data['name']);
-	    $sth->bindParam("size", $data['size']);
-	    $sth->bindParam("uploaded_date", $currentDateTime);
-	    $sth->execute();
+            $sql_pic = "INSERT INTO pictures
+                SET picture_name = :picture_name,
+                    size = :size,
+                    uploaded_date = :uploaded_date";
+            $sth = $this->db->prepare($sql_pic);
+            $sth->bindParam("picture_name", $data['name']);
+            $sth->bindParam("size", $data['size']);
+            $sth->bindParam("uploaded_date", $currentDateTime);
+            $sth->execute();
 
-	    $sth = $this->db->prepare("SELECT picture_id FROM pictures WHERE picture_name = :picture_name");
-	    $sth->bindParam("picture_name", $data['name']);
-	    $sth->execute();
-	    $picture_id = $sth->fetchObject()->picture_id;
-	}
+            $sth = $this->db->prepare("SELECT picture_id FROM pictures WHERE picture_name = :picture_name");
+            $sth->bindParam("picture_name", $data['name']);
+            $sth->execute();
+            $picture_id = $sth->fetchObject()->picture_id;
+        }
 
-	$input = $request->getParsedBody();
-	$sql_deal = "UPDATE deals
-		     SET title = :title,
-			 store_id = :store_id,
-			 description = :description,
-			 category_id = :category_id,
-			 expiration_date = :expiration_date,
-			 updated_date = :updated_date,
-			 picture_id = :picture_id
-		     WHERE deal_id = :deal_id";
-	$sth = $this->db->prepare($sql_deal);
-	$sth->bindParam("deal_id", $args['deal_id']);
-	$sth->bindValue("title", ($input['title'] == null ? $deal->title : $input['title']));
-	$sth->bindValue("store_id", ($input['store_id'] == null ? $deal->store_id : $input['store_id']));
-	$sth->bindValue("description", ($input['description'] == null ? $deal->description : $input['description']));
-	$sth->bindValue("category_id", ($input['category_id'] == null ? $deal->category_id : $input['category_id']));
-	$sth->bindValue("expiration_date", ($input['expiration_date'] == null ? $deal->expiration_date : $input['expiration_date']));
-	$sth->bindParam("updated_date", $currentDateTime);
-	$sth->bindParam("picture_id", $picture_id);
-	$sth->execute();
+        $input = $request->getParsedBody();
+        $sql_deal = "UPDATE deals
+                 SET title = :title,
+                 store_id = :store_id,
+                 description = :description,
+                 category_id = :category_id,
+                 expiration_date = :expiration_date,
+                 updated_date = :updated_date,
+                 picture_id = :picture_id
+                 WHERE deal_id = :deal_id";
+        $sth = $this->db->prepare($sql_deal);
+        $sth->bindParam("deal_id", $args['deal_id']);
+        $sth->bindValue("title", ($input['title'] == null ? $deal->title : $input['title']));
+        $sth->bindValue("store_id", ($input['store_id'] == null ? $deal->store_id : $input['store_id']));
+        $sth->bindValue("description", ($input['description'] == null ? $deal->description : $input['description']));
+        $sth->bindValue("category_id", ($input['category_id'] == null ? $deal->category_id : $input['category_id']));
+        $sth->bindValue("expiration_date", ($input['expiration_date'] == null ? $deal->expiration_date : $input['expiration_date']));
+        $sth->bindParam("updated_date", $currentDateTime);
+        $sth->bindParam("picture_id", $picture_id);
+        $sth->execute();
 
-	$sth = $this->db->prepare("SELECT deal_id, username, title, store, description, category, expiration_date, posted_date, deals.updated_date, picture_name
-				   FROM deals, users, categories, stores, pictures
-				   WHERE deals.user_id = users.user_id
-				   AND deals.category_id = categories.category_id
-				   AND deals.store_id = stores.store_id
-				   AND deals.picture_id = pictures.picture_id
-				   AND deal_id = :deal_id");
-	$sth->bindParam("deal_id", $args['deal_id']);
-	$sth->execute();
-	$output = $sth->fetchObject();
-	return $this->response->withJson($output);
+        $sth = $this->db->prepare("SELECT deal_id, username, title, store_id, description, category, expiration_date, posted_date, deals.updated_date, picture_name
+                       FROM deals, users, categories, pictures
+                       WHERE deals.user_id = users.user_id
+                       AND deals.category_id = categories.category_id
+                       AND deals.picture_id = pictures.picture_id
+                       AND deal_id = :deal_id");
+        $sth->bindParam("deal_id", $args['deal_id']);
+        $sth->execute();
+        $output = $sth->fetchObject();
+        return $this->response->withJson($output);
     }
 });
 
 // Add New Deal
 $app->post('/api/deal', function ($request, $response, $args) {
+    // Log http request
+    logRequest($request, $this);
+
     $storage = new \Upload\Storage\FileSystem('./deal_picture');
     $file = new \Upload\File('image', $storage);
 
@@ -1139,30 +1183,31 @@ $app->post('/api/deal', function ($request, $response, $args) {
 
     // Validate file upload
     $file->addValidations(array(
-	// Ensure file is of type "image/png" or "image/jpeg"
-	new \Upload\Validation\Mimetype(array('image/png', 'image/jpeg')),
+    // Ensure file is of type "image/png" or "image/jpeg"
+    new \Upload\Validation\Mimetype(array('image/png', 'image/jpeg')),
 
-	// Ensure file is no larger than 5M (use "B", "K", M", or "G")
-	new \Upload\Validation\Size('5M')
+    // Ensure file is no larger than 5M (use "B", "K", M", or "G")
+    new \Upload\Validation\Size('5M')
     ));
 
     // Access data about the file that has been uploaded
     $data = array(
-	'name'       => $file->getNameWithExtension(),
-	'extension'  => $file->getExtension(),
-	'mime'       => $file->getMimetype(),
-	'size'       => $file->getSize(),
-	'md5'        => $file->getMd5(),
-	'dimensions' => $file->getDimensions()
+    'name'       => $file->getNameWithExtension(),
+    'extension'  => $file->getExtension(),
+    'mime'       => $file->getMimetype(),
+    'size'       => $file->getSize(),
+    'md5'        => $file->getMd5(),
+    'dimensions' => $file->getDimensions()
     );
 
     // Try to upload file
     try {
-	// Success!
-	$file->upload();
+        // Success!
+        $file->upload();
     } catch (\Exception $e) {
-	// Fail!
-	$errors = $file->getErrors();
+        // Fail!
+        $errors = $file->getErrors();
+        return '{"error":{"text": "'. $errors .'"}}';
     }
 
     $user_id = getUserIdFromToken($request, $this);
@@ -1206,11 +1251,10 @@ $app->post('/api/deal', function ($request, $response, $args) {
     $sth->bindParam("picture_id", $picture_id);
     $sth->execute();
 
-    $sth = $this->db->prepare("SELECT deal_id, username, title, store, description, category, expiration_date, posted_date, deals.updated_date, picture_name
-			       FROM deals, users, categories, stores, pictures
+    $sth = $this->db->prepare("SELECT deal_id, username, title, store_id, description, category, expiration_date, posted_date, deals.updated_date, picture_name
+                   FROM deals, users, categories, pictures
                                WHERE deals.user_id = users.user_id
                                AND deals.category_id = categories.category_id
-                               AND deals.store_id = stores.store_id
                                AND deals.picture_id = pictures.picture_id
                                AND deals.picture_id = :picture_id");
     $sth->bindParam("picture_id", $picture_id);
@@ -1218,6 +1262,7 @@ $app->post('/api/deal', function ($request, $response, $args) {
     $output = $sth->fetchObject();
     return $this->response->withJson($output);
 });
+
 
 //Delete deal
 $app->delete('/api/deal', function ($request, $response, $args) {
@@ -1242,78 +1287,86 @@ $app->post('/api/vote', function ($request, $response, $args) {
     // Log http request
     logRequest($request, $this);
 
-    // Get user_id from jwt in authorization header
-    $user_id = getUserIdFromToken($request, $this);
+    $jwt = $request->getHeaders();
 
-    // Get current vote for user on specific deal
-    $input = $request->getParsedBody();
+    if(isAuthenticated($jwt, $this)){
+        // Get user_id from jwt in authorization header
+        $user_id = getUserIdFromToken($request, $this);
 
-    $search = "SELECT vote_type
-               FROM votes 
-               WHERE user_id = :user_id
-               AND deal_id = :deal_id";
-    $sth = $this->db->prepare($search);
-    $sth->bindParam("user_id", $user_id);
-    $sth->bindParam("deal_id", $input['deal_id']);
-    $success = $sth->execute();
-    $vote = $sth->fetchObject();
+        // Get current vote for user on specific deal
+        $input = $request->getParsedBody();
 
-    $vote_type = $input['vote_type'];
-    $deal_id = $input['deal_id'];
-    
-    // If query executes successfully (all input args are valid)
-    if($success) {
-        // If user has not voted on current deal
-        // Add new entry in votes table
-        if($vote == false) {
-            $addVote = "INSERT INTO votes 
-                        SET vote_type = :vote_type,
-                            user_id = :user_id,
-                            deal_id = :deal_id,
-                            vote_date = :vote_date";
-            $sth = $this->db->prepare($addVote);
-            $sth->bindParam("vote_type", $vote_type);
-            $sth->bindParam("user_id", $user_id);
-            $sth->bindParam("deal_id", $deal_id);
-            $sth->bindParam("vote_date", date('Y-m-d H:i:s'));
-            $sth->execute();
+        $search = "SELECT vote_type
+                   FROM votes 
+                   WHERE user_id = :user_id
+                   AND deal_id = :deal_id";
+        $sth = $this->db->prepare($search);
+        $sth->bindParam("user_id", $user_id);
+        $sth->bindParam("deal_id", $input['deal_id']);
+        $success = $sth->execute();
+        $vote = $sth->fetchObject();
 
-            // Starting vote is 0 because no vote existed before
-            $ogVoteType = 0;            
-        }
-        // If user has already voted on current deal
-        // Update existing entry in votes table with vote_type
-        else {
-            $editVote = "UPDATE votes 
-                         SET vote_type = :vote_type,
-                             vote_date = :vote_date
-                         WHERE user_id = :user_id
-                         AND deal_id = :deal_id";
-            $sth = $this->db->prepare($editVote);
-            $sth->bindParam("vote_type", $vote_type);
-            $sth->bindParam("user_id", $user_id);
-            $sth->bindParam("deal_id", $deal_id);
-            $sth->bindParam("vote_date", date('Y-m-d H:i:s'));
-            $sth->execute();
-
-            // Get starting vote type from votes table
-            $ogVoteType = $vote->vote_type;
-        }
-
-        // Get amount to adjust vote total by based on new vote
-        $voteAdjustment = -1 * $ogVoteType + $vote_type;
+        $vote_type = $input['vote_type'];
+        $deal_id = $input['deal_id'];
         
-        // Update vote_count in deals table
-        $adjustVoteCountSql = "UPDATE deals
-                               SET vote_count = vote_count + :voteAdjustment
-                               WHERE deal_id = :deal_id";
-        $sth = $this->db->prepare($adjustVoteCountSql);
-        $sth->bindParam("voteAdjustment", $voteAdjustment);
-        $sth->bindParam("deal_id", $deal_id);
-        $sth->execute();
+        // If query executes successfully (all input args are valid)
+        if($success) {
+            // If user has not voted on current deal
+            // Add new entry in votes table
+            if($vote == false) {
+                $addVote = "INSERT INTO votes 
+                            SET vote_type = :vote_type,
+                                user_id = :user_id,
+                                deal_id = :deal_id,
+                                vote_date = :vote_date";
+                $sth = $this->db->prepare($addVote);
+                $sth->bindParam("vote_type", $vote_type);
+                $sth->bindParam("user_id", $user_id);
+                $sth->bindParam("deal_id", $deal_id);
+                $sth->bindParam("vote_date", date('Y-m-d H:i:s'));
+                $sth->execute();
+
+                // Starting vote is 0 because no vote existed before
+                $ogVoteType = 0;            
+            }
+            // If user has already voted on current deal
+            // Update existing entry in votes table with vote_type
+            else {
+                $editVote = "UPDATE votes 
+                             SET vote_type = :vote_type,
+                                 vote_date = :vote_date
+                             WHERE user_id = :user_id
+                             AND deal_id = :deal_id";
+                $sth = $this->db->prepare($editVote);
+                $sth->bindParam("vote_type", $vote_type);
+                $sth->bindParam("user_id", $user_id);
+                $sth->bindParam("deal_id", $deal_id);
+                $sth->bindParam("vote_date", date('Y-m-d H:i:s'));
+                $sth->execute();
+
+                // Get starting vote type from votes table
+                $ogVoteType = $vote->vote_type;
+            }
+
+            // Get amount to adjust vote total by based on new vote
+            $voteAdjustment = -1 * $ogVoteType + $vote_type;
+            
+            // Update vote_count in deals table
+            $adjustVoteCountSql = "UPDATE deals
+                                   SET vote_count = vote_count + :voteAdjustment
+                                   WHERE deal_id = :deal_id";
+            $sth = $this->db->prepare($adjustVoteCountSql);
+            $sth->bindParam("voteAdjustment", $voteAdjustment);
+            $sth->bindParam("deal_id", $deal_id);
+            $sth->execute();
+        }
+
+        return $this->response->withJson(array("rows affected" => $sth->rowCount()));
+    }
+    else{
+        return '{"error":{"text": "Authorization Token Error"}}'; 
     }
 
-    return $this->response->withJson(array("rows affected" => $sth->rowCount()));
 });
 
 // Get vote count
