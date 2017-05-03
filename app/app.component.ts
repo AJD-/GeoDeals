@@ -66,4 +66,7 @@ export class AppComponent {
                 }
             });
     }
+    logout() {
+        localStorage.removeItem("Authorization");
+    }
 }
