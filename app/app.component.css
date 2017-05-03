@@ -5,6 +5,7 @@ body{
 .header{
 	padding-left: 10px;
 	background-color: darkgrey;
+    z-index:50;
 }
 .main{
 	background-color: grey;
@@ -45,5 +46,41 @@ body {
     margin: auto;
     width: 30vh;
     margin-top: 55vh;
->>>>>>> b3ceeb7f25cae1e32416a9948b60d7c441a3e3c7
+}
+#left-side-menu-btn {
+    display: inline-block;
+    position: absolute;
+    top: 100px;
+    transition: 0.4s;
+    font-size: 35px;
+    z-index: 50;
+    left: 0;
+}
+.container {
+    position: relative;
+    top: -150px;
+}
+.change {
+    -webkit-transform: translate(250px) rotate(90deg);
+    transform: translate(250px) rotate(-90deg);
+}
+#offscreen-left {
+    position: relative;
+    width: 250px;
+    left: -270px;
+    background-color: white;
+    box-shadow: 5px 5px 5px lightgrey;
+    padding: 5px 5px 5px 5px;
+}
+.transition {
+    -webkit-transition: left 0.3s ease-out; /* Chrome 1-25, Safari 3.2+ */
+    -moz-transition: left 0.3s ease-out; /* Firefox 4-15 */
+    -o-transition: left 0.3s ease-out; /* Opera 10.50–12.00 */
+    transition: left 0.3s ease-out; /* Chrome 26, Firefox 16+, IE 10+, Opera 12.10+ */
+}
+.open {
+    left: 0px !important;
+}
+#searchbtn {
+    padding: 9px 12px !important;
 }

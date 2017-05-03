@@ -25,7 +25,19 @@ export class DealRepository {
             })
             .catch(x => x.message);
     }
-
+    public search(searchParam): Promise<Deal[]> {
+        var headers = new Headers();
+        headers.append('Authorization', localStorage.getItem('Authorization'));
+        let options = new RequestOptions({ headers: headers });
+        return this.http
+            .post(this._apiUrl, searchParam, options)
+            .toPromise()
+            .then(x => {
+                let body = x.json();
+                return (body.deals.final_deals) as Deal[];
+            })
+            .catch(x => x.message);
+    }
     public get(id: number): Promise<Deal> {
         var headers = new Headers();
         headers.append("Authorization", localStorage.getItem('Authorization'));
