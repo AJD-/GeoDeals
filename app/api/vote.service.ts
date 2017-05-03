@@ -10,8 +10,11 @@ export class VoteService {
     constructor(private http: Http) { }
 
     public vote(vote: Vote) {
+        var headers = new Headers();
+        headers.append('Authorization', localStorage.getItem('Authorization'));
+        let options = new RequestOptions({ headers: headers });
         return this.http
-            .post(this._apiUrl, vote)
+            .post(this._apiUrl, vote, options)
             .toPromise()
             .then(x => x.json().data as Vote)
             .catch(x => x.message);
