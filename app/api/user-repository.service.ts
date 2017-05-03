@@ -84,4 +84,14 @@ export class UserRepository {
             })
             .catch(x => x.message);
     }
+
+    logout(): Promise<any> {
+        var headers = new Headers();
+        headers.append("Authorization", localStorage.getItem('Authorization'));
+        let options = new RequestOptions({ headers: headers });
+        return this.http
+            .get(`https://54.70.252.84/api/logout`, options)
+            .toPromise()
+            .then(x => console.log(x.json()));
+    }
 }

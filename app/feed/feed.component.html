@@ -8,7 +8,7 @@
 	<div class="media thumbnail rel">
 		<div class="pull-left">
 			<a [routerLink]="['../deal/',deal.deal_id]">
-				<img class="media-object deal-icon" [src]="deal.imagePath" onError="this.src='/img/default-thumbnail.jpg';" [alt]="deal.title">
+				<img class="media-object deal-icon" [src]="'https://54.70.252.84/deal_picture/' + deal.picture_name" onError="this.src='/img/default-thumbnail.jpg';" [alt]="deal.title">
 			</a>
 		</div>
 		<h1 class="media-heading col-xs-6">{{ deal.title }}</h1>
