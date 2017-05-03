@@ -6,6 +6,7 @@ import { HttpModule } from '@angular/http';
 import { Http, Headers, Response } from '@angular/http';
 import { InMemoryWebApiModule } from 'angular-in-memory-web-api';
 import { MockApiService } from './mock-api.service';
+import { enableProdMode } from '@angular/core';
 
 import { AppComponent }   from './app.component';
 import { HomeComponent }   from './home/home.component';
@@ -17,7 +18,7 @@ import { DealModule } from './deal/deal.module';
 import { UserRepository } from './api/user-repository.service';
 import { VoteService } from './api/vote.service';
 import { LocationService } from './api/location.service';
-
+enableProdMode();
 
 @NgModule({
   imports:      [ 
