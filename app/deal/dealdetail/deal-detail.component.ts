@@ -17,7 +17,7 @@ import { VoteService } from '../../api/vote.service';
 export class DealDetailComponent {
     @Output() titleUpdated : EventEmitter<string> = new EventEmitter();
     title: string;
-    deal: any;
+    deal: Deal;
     deals: Deal[];
     vote: Vote = new Vote;
 	uv : boolean[];
@@ -44,11 +44,17 @@ export class DealDetailComponent {
                 }
             });
     }
-
 	ngOnInit() {
-        this.route.params
-            .switchMap((params: Params) => this.dealRepository.get(+params['id']))
-            .subscribe(deal => this.deal = deal);
+        var onLoad = (data) => {
+            this.deal = data;				
+        };
+
+		this.route.params.subscribe(params => {
+			if(params['dealid'] !== undefined) {
+                this.dealRepository.get(+params['dealid'])
+                    .then(onLoad);
+			}
+		});
     }
     upvote(index : number, deal_id: number){
 		if(!this.uv[index]){

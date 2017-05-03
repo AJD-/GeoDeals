@@ -9,6 +9,7 @@
 			<span [style.color]="isUpvoted(i)" (click)="upvote(i, deal?.deal_id)" class="glyphicon glyphicon-menu-up"></span><br/>
 			<p class="rank">{{ deal?.vote_count || 0 }}</p><br/>
 			<span [style.color]="isDownvoted(i)" (click)="downvote(i, deal?.deal_id)" class="glyphicon glyphicon-menu-down"></span>
+	    </div>
 		<p>Posted by user {{ deal?.user_id }}</p>
-	</div>
+    </div>
 </div>
