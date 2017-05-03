@@ -25,6 +25,7 @@ export class DealRepository {
             })
             .catch(x => x.message);
     }
+
     public search(searchParam): Promise<Deal[]> {
         var headers = new Headers();
         headers.append('Authorization', localStorage.getItem('Authorization'));
@@ -34,10 +35,15 @@ export class DealRepository {
             .toPromise()
             .then(x => {
                 let body = x.json();
-                return (body.deals.final_deals) as Deal[];
+                if (body.deals) {
+                    return (body.deals.final_deals) as Deal[];
+                } else {
+                    window.sessionStorage.setItem('error', (body.error.text));
+                }
             })
             .catch(x => x.message);
     }
+
     public get(id: number): Promise<Deal> {
         var headers = new Headers();
         headers.append("Authorization", localStorage.getItem('Authorization'));
