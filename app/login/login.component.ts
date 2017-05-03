@@ -25,7 +25,7 @@ export class LoginComponent {
     submit() {
         this.userRepository.signin(this.user)
             .then(x => {
-                if (localStorage.getItem('jwt'))
+                if (localStorage.getItem('Authorization'))
                     this.goToFeed(`User logged in`);
                 else
                     this.error = localStorage.getItem('error');
