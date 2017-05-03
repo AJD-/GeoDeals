@@ -43,7 +43,7 @@ export class FeedComponent {
 			if(this.dv[index]){
                 this.downvote(index, deal_id);
 			}
-            this.deals[index].vote_count++; //uv: send vote type  1, 0 for dv, 2 for unvote
+            this.deals[index].vote_count++; //uv: send vote type  1, -1 for dv, 0 for unvote
             this.vote.deal_id = deal_id;
             this.vote.vote_type = 1;
             this.voteService.vote(this.vote)

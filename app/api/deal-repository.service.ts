@@ -13,8 +13,11 @@ export class DealRepository {
     }
 
     public list(): Promise<Deal[]> {
+        var headers = new Headers();
+        headers.append('Authorization', localStorage.getItem('Authorization'));
+        let options = new RequestOptions({ headers: headers });
         return this.http
-            .get(this._apiUrl)
+            .get(this._apiUrl, options)
             .toPromise()
             .then(x => {
                 let body = x.json();
@@ -24,8 +27,11 @@ export class DealRepository {
     }
 
     public get(id: number): Promise<Deal> {
+        var headers = new Headers();
+        headers.append("Authorization", localStorage.getItem('Authorization'));
+        let options = new RequestOptions({ headers: headers });
         return this.http
-            .get(`${this._apiPostDealUrl}/${id}`)
+            .get(`${this._apiPostDealUrl}/${id}`, options)
             .toPromise()
             .then(x => x.json().data as Deal)
             .catch(x => x.message);
