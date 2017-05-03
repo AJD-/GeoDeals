@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-
+import { Router, ActivatedRoute } from '@angular/router';
 import { DealRepository } from '../api/deal-repository.service';
 import { VoteService } from '../api/vote.service';
 import { Deal } from '../api/deal';
@@ -23,7 +23,8 @@ export class FeedComponent {
     invalidSearch: boolean = false;
     err: string;
 
-    constructor(private dealRepository: DealRepository, private voteService: VoteService) {
+    constructor(private dealRepository: DealRepository, private voteService: VoteService, private router: Router,
+        private route: ActivatedRoute) {
 		this.title = "GeoDeals";
         this.titleUpdated.emit(this.title);
         this.dv = [];
@@ -42,6 +43,9 @@ export class FeedComponent {
     }
 
     ngOnInit() {
+        if (localStorage.getItem("Authorization") === null) {
+            this.router.navigateByUrl("/");
+        }
         window.sessionStorage.removeItem("deals_search");
         window.sessionStorage.removeItem("error");
         setInterval(() => {
