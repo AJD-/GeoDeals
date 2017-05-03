@@ -1,6 +1,7 @@
 import { Component, ViewEncapsulation } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { DealRepository } from './api/deal-repository.service';
+import { UserRepository } from './api/user-repository.service';
 import { Deal } from './api/deal';
 
 @Component({
@@ -13,6 +14,7 @@ import { Deal } from './api/deal';
 export class AppComponent { 
 	title : string;
     loggedIn: boolean;
+    atDeal: boolean;
     clicked: boolean = false;
     searchQuery: any = {};
     loc: any = {};
@@ -22,9 +24,11 @@ export class AppComponent {
 	constructor(
 		private router: Router,
         private route: ActivatedRoute,
-        private dealRepository: DealRepository
+        private dealRepository: DealRepository,
+        private userRepository: UserRepository
 	){
 		router.events.subscribe((loggedIn) => this.loggedIn = (router.url === "/feed"));
+		router.events.subscribe((atDeal) => this.atDeal = (router.url.includes("/deal")));
 		this.title = "GeoDeals";
 	}
 	ngOnInit(){
@@ -67,6 +71,7 @@ export class AppComponent {
             });
     }
     logout() {
-        localStorage.removeItem("Authorization");
+        this.userRepository.logout()
+            .then(x => localStorage.removeItem("Authorization"));
     }
 }

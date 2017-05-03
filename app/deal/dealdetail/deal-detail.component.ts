@@ -41,20 +41,12 @@ export class DealDetailComponent {
                         this.dv.push(false);
                         this.uv.push(false);
                     }
+                    route.params.subscribe(params => {
+                        console.log(this.deals.values);
+                        this.deal = this.deals[params['dealid']];
+                    });
                 }
             });
-    }
-	ngOnInit() {
-        var onLoad = (data) => {
-            this.deal = data;				
-        };
-
-		this.route.params.subscribe(params => {
-			if(params['dealid'] !== undefined) {
-                this.dealRepository.get(+params['dealid'])
-                    .then(onLoad);
-			}
-		});
     }
     upvote(index : number, deal_id: number){
 		if(!this.uv[index]){
