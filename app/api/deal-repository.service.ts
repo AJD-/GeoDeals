@@ -56,7 +56,8 @@ export class DealRepository {
     }
 
     public add(formData): Promise<Deal> {
-        let headers = new Headers();
+        let headers = new Headers();		
+        headers.append("Authorization", localStorage.getItem('Authorization'));
         headers.append('Content-Type', 'multipart/form-data');
         let options = new RequestOptions({ headers: headers });
         return this.http

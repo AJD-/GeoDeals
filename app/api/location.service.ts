@@ -9,7 +9,10 @@ export class LocationService {
     constructor(private http: Http) { }
 
     public sendLoc(loc: any): Promise<any[]> {
-        return this.http.post(this._apiUrl, loc)
+		var headers = new Headers();
+        headers.append('Authorization', localStorage.getItem('Authorization'));
+        let options = new RequestOptions({ headers: headers });
+        return this.http.post(this._apiUrl, loc, options)
             .toPromise()
             .then(x => {
                 console.log(x);
